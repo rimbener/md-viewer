@@ -1,0 +1,7 @@
+# CocoaPods
+Pods/
+
+# Xcode build output
+build/
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
