@@ -81,7 +81,29 @@ Until that exists, the degradation is at least graceful: the existence check on
 the stored folder fails, and the app falls back to the folder dialog exactly as
 it would on a first run.
 
-## Read-only
+## Edits are never written to disk
 
-There is no editing, no search, and no export. The viewer displays what is on
-disk and nothing more.
+The source editor changes what the viewer renders, not the file. A document's
+buffer is kept for as long as the app is running, so switching to another file
+and back does not lose it, but quitting does and there is no save, no undo
+history beyond the text field's own, and no prompt on the way out. The header
+says `edited, not saved` whenever a buffer has diverged from disk.
+
+Writing is the obvious next step, and it is a larger change than it looks: it
+needs a save command, a decision about what to do when the file has changed
+underneath the buffer, and — in a sandboxed build — the same security-scoped
+bookmark problem described above, except that failing to resolve it would cost
+someone their work rather than just their folder.
+
+## The document reparses on every keystroke
+
+There is no debounce: the preview is rebuilt from the whole source each time it
+changes, which is what makes it feel live. Parsing is fast enough for prose,
+but a document of a few hundred thousand characters will type roughly. Past
+500,000 characters the editor is disabled outright, because that document is
+already falling back to plain text.
+
+## No search and no export
+
+The viewer displays what is on disk, and now what you have typed over it, and
+nothing more.
