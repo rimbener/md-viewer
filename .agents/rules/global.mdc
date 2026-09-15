@@ -1,0 +1,28 @@
+---
+alwaysApply: true
+---
+
+In all interactions and commit messages, be extremely concise and sacrifice grammar for the sake of concision. Always use ASD-STE100 (Simplified Technical English) for explanations, documentation, etc.
+
+Always use functional React
+Don't use Redux
+always use "npx expo install" for installing packages
+
+Don't change Gemfile, Podfile, package.json, or yarn.lock files if the change is not related to updating dependencies or adding new dependencies.
+
+# Comments Policy
+
+Default: no comments.
+
+- Add a single short line only when the **why** is non-obvious: hidden constraint, workaround for an external bug, subtle invariant.
+- Never describe **what** the code does; well-named identifiers do that.
+- One invariant, one comment. It lives next to the helper that owns the constraint. Never copy it to a call site in another file or package; the copies drift.
+- Never narrate a fixture or table (`// A titled button puts this on one side…` above a `PLACEMENT` table).
+- The allowed _why_ is still one line. A two-line rationale gets trimmed, not moved.
+
+# Code quality
+
+- Short functions, one reason to change, revealing names, no duplication, no magic numbers. SOLID, YAGNI, KISS, DRY.
+- No debug leftovers, no commented-out code, no TODO without an issue.
+- No dead code: no unused export, barrel, file, prop, or constant. If something is redundant but harmless, request the user to remove it.
+- **Never `export default`.** Always named exports (`export const Foo = …`) — they keep the name stable across barrels and imports. Exception: files a tool requires to default-export — `*.stories.tsx` (`{ title, component }`) and config files (`babel.config.js`, `metro.config.js`, `jest.config.js`).
