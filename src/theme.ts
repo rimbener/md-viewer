@@ -70,8 +70,8 @@ const light: Theme = {
 };
 
 const dark: Theme = {
-  background: '#1e1e20',
-  sidebar: '#252528',
+  background: '#252528',
+  sidebar: '#1e1e20',
   border: '#37373a',
   text: '#ececee',
   mutedText: '#9a9aa0',
