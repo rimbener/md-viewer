@@ -43,7 +43,7 @@ an ordinary "and" or "given" are far more common than uncapitalised steps.
 
 Gherkin is also only reached through a fenced block inside a markdown document.
 A standalone `.feature` file is not shown at all, because the folder scan only
-collects `.md` files.
+collects `.md` and `.mdc` files.
 
 ## Images only render as blocks
 
