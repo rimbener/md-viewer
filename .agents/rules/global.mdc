@@ -10,6 +10,8 @@ always use "npx expo install" for installing packages
 
 Don't change Gemfile, Podfile, package.json, or yarn.lock files if the change is not related to updating dependencies or adding new dependencies.
 
+Always commit into main using conventional commits unless otherwise specified.
+
 # Comments Policy
 
 Default: no comments.
