@@ -3,12 +3,12 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "android": "react-native run-android",
+    "android": "react-native run-android --port 8200",
     "build:macos": "react-native build-macos --mode Debug",
-    "ios": "react-native run-ios",
+    "ios": "react-native run-ios --port 8200",
     "lint": "eslint .",
-    "macos": "react-native run-macos",
-    "start": "react-native start",
+    "macos": "react-native run-macos --port 8200",
+    "start": "react-native start --port 8200",
     "test": "jest"
   },
   "dependencies": {
