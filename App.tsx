@@ -12,10 +12,13 @@ import { pickDirectory } from 'react-native-document-picker-macos';
 
 import { DocumentPanel } from './src/components/DocumentPanel';
 import { Sidebar } from './src/components/Sidebar';
+import { bookmarkFolder, closeFolder, openFolder } from './src/folderAccess';
 import {
+  loadFolderBookmark,
   loadLastFile,
   loadLastFolder,
   loadSidebarVisible,
+  saveFolderBookmark,
   saveLastFile,
   saveLastFolder,
   saveSidebarVisible,
@@ -71,6 +74,10 @@ function App() {
       pendingFilePath.current = null;
       setSelectedFile(null);
       saveLastFile(null);
+      // The panel's grant is live now, which is the only moment a bookmark for
+      // it can be made.
+      closeFolder();
+      saveFolderBookmark(await bookmarkFolder(directory.path));
       setRootPath(directory.path);
       saveLastFolder(directory.path);
     } catch (cause) {
@@ -139,7 +146,7 @@ function App() {
     let cancelled = false;
 
     (async () => {
-      const folder = await loadLastFolder();
+      const folder = await restoreFolder();
       const isUsable = folder !== null && (await folderExists(folder));
       if (cancelled) {
         return;
@@ -184,6 +191,31 @@ function App() {
       />
     </View>
   );
+}
+
+/**
+ * The folder of the last session, with its access restored. The bookmark is
+ * the authority on where the folder is, because it follows a folder that moved;
+ * the stored path is the fallback for a build that never made one.
+ */
+async function restoreFolder(): Promise<string | null> {
+  const stored = await loadLastFolder();
+  const bookmark = await loadFolderBookmark();
+  if (bookmark === null) {
+    return stored;
+  }
+
+  const opened = await openFolder(bookmark);
+  if (opened === null) {
+    return stored;
+  }
+  if (opened.path !== stored) {
+    saveLastFolder(opened.path);
+  }
+  if (opened.isStale) {
+    bookmarkFolder(opened.path).then(saveFolderBookmark);
+  }
+  return opened.path;
 }
 
 /** A folder that has been moved or deleted since last launch is not usable. */

@@ -1,6 +1,8 @@
 /**
  * The launch path that reopens the last session, end to end: stored folder →
- * scan → stored file selected → its markdown rendered.
+ * scan → stored file selected → its markdown rendered. A sandboxed build
+ * reaches that folder through a stored bookmark, so the folder access is
+ * mocked here the way the native modules are.
  */
 
 import { readDir, readFile } from '@dr.pogodin/react-native-fs';
@@ -10,6 +12,13 @@ import ReactTestRenderer from 'react-test-renderer';
 import { pickDirectory } from 'react-native-document-picker-macos';
 
 import App from '../App';
+import { bookmarkFolder, openFolder } from '../src/folderAccess';
+
+jest.mock('../src/folderAccess', () => ({
+  bookmarkFolder: jest.fn(async () => null),
+  openFolder: jest.fn(async () => null),
+  closeFolder: jest.fn(),
+}));
 
 const fs = { readDir, readFile } as unknown as {
   readDir: jest.Mock;
@@ -17,6 +26,10 @@ const fs = { readDir, readFile } as unknown as {
 };
 const storage = AsyncStorage as jest.Mocked<typeof AsyncStorage>;
 const picker = pickDirectory as jest.Mock;
+const access = { bookmarkFolder, openFolder } as unknown as {
+  bookmarkFolder: jest.Mock;
+  openFolder: jest.Mock;
+};
 
 /** One directory holding `notes.md` and `todo.md`. */
 function mockFolder(): void {
@@ -109,4 +122,50 @@ it('falls back to the dialog when the stored folder is gone', async () => {
   await renderApp();
 
   expect(picker).toHaveBeenCalled();
+});
+
+it('reopens the folder the bookmark points at, wherever it moved to', async () => {
+  await storage.setItem('mdviewer.lastFolder', '/before-the-move');
+  await storage.setItem('mdviewer.lastFolderBookmark', 'BOOKMARK');
+  access.openFolder.mockResolvedValueOnce({ path: '/notes', isStale: false });
+
+  const rendered = await renderApp();
+
+  expect(access.openFolder).toHaveBeenCalledWith('BOOKMARK');
+  expect(picker).not.toHaveBeenCalled();
+  expect(rendered).toContain('notes.md');
+  expect(await storage.getItem('mdviewer.lastFolder')).toBe('/notes');
+});
+
+it('asks for a folder when the stored bookmark no longer opens', async () => {
+  await storage.setItem('mdviewer.lastFolder', '/notes');
+  await storage.setItem('mdviewer.lastFolderBookmark', 'BOOKMARK');
+  const { exists } = jest.requireMock('@dr.pogodin/react-native-fs');
+  (exists as jest.Mock).mockResolvedValueOnce(false);
+
+  await renderApp();
+
+  expect(picker).toHaveBeenCalled();
+});
+
+it('makes the bookmark again when the resolved one is stale', async () => {
+  await storage.setItem('mdviewer.lastFolder', '/notes');
+  await storage.setItem('mdviewer.lastFolderBookmark', 'OLD');
+  access.openFolder.mockResolvedValueOnce({ path: '/notes', isStale: true });
+  access.bookmarkFolder.mockResolvedValueOnce('FRESH');
+
+  await renderApp();
+
+  expect(await storage.getItem('mdviewer.lastFolderBookmark')).toBe('FRESH');
+});
+
+it('stores a bookmark for the folder someone picks', async () => {
+  picker.mockResolvedValue([{ path: '/notes' }]);
+  access.bookmarkFolder.mockResolvedValueOnce('BOOKMARK');
+
+  const rendered = await renderApp();
+
+  expect(access.bookmarkFolder).toHaveBeenCalledWith('/notes');
+  expect(await storage.getItem('mdviewer.lastFolderBookmark')).toBe('BOOKMARK');
+  expect(rendered).toContain('notes.md');
 });

@@ -71,22 +71,23 @@ specification. Known gaps include HTML blocks as block-level constructs, link
 titles (parsed only so they can be skipped), and the finer points of emphasis
 delimiter matching in ambiguous cases such as `**a*b**`.
 
-## Restored folders assume an unsandboxed build
+## Only one folder is remembered, and only the last one
 
-The last folder and file are remembered in AsyncStorage and reopened on the
-next launch. That stores a *path*, which is not the same as storing
-*permission*.
+The last folder and file are remembered and reopened on the next launch. That
+stores a *path*, which is not the same as storing *permission*: the sandboxed
+build reaches a folder through the `NSOpenPanel` the person picked it with, and
+that grant dies with the process.
 
-The Debug build is not sandboxed — its signed entitlements are only
-`get-task-allow` — so a restored path can simply be read. A sandboxed Release
-build is a different matter: macOS grants access to a folder through the
-`NSOpenPanel` the person picked it with, and that grant does not survive
-relaunching. Persisting it properly needs security-scoped bookmarks, which
-means resolving a bookmark at startup and holding the access for as long as the
-folder is open.
+A security-scoped bookmark is the grant written down. `FolderAccess.mm` makes
+one while the panel's grant is still live, stores it beside the path, and
+resolves it at startup — so the folder reopens, and it reopens even if it moved,
+because a bookmark follows the folder rather than the path. Access is held for
+as long as that folder is open and given up when another is chosen.
 
-Until that exists, the degradation is at least graceful: the existence check on
-the stored folder fails, and the app falls back to the folder dialog exactly as
+Only the last folder is kept. There is no list of recent folders and no way to
+hold two open at once, so picking a new folder gives up the old grant. When a
+bookmark no longer resolves — the folder was deleted, or the grant was revoked —
+the degradation is graceful: the app falls back to the folder dialog exactly as
 it would on a first run.
 
 ## Edits are never written to disk
@@ -99,9 +100,9 @@ says `edited, not saved` whenever a buffer has diverged from disk.
 
 Writing is the obvious next step, and it is a larger change than it looks: it
 needs a save command, a decision about what to do when the file has changed
-underneath the buffer, and — in a sandboxed build — the same security-scoped
-bookmark problem described above, except that failing to resolve it would cost
-someone their work rather than just their folder.
+underneath the buffer, and a wider sandbox grant, because the entitlements ask
+only for read-only access to what the person picked. Nothing can be written
+even while the folder is open.
 
 ## The document reparses on every keystroke
 

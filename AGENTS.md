@@ -18,6 +18,7 @@ than a detail.
 npm start                       # Metro dev server
 npm run macos                   # build and run the macOS app (the primary target)
 npm run build:macos             # Debug build without launching
+xcodebuild -workspace macos/MdViewer.xcworkspace -scheme MdViewer-macOS -configuration Release build
 pod install --project-directory=macos   # after a fresh clone or a native dependency change
 
 npm test                        # jest, the whole suite
@@ -78,6 +79,13 @@ through a context — so changing the zoom rebuilds one stylesheet rather than
 touching each element.
 
 ### Persistence and editing
+
+The app is sandboxed in both configurations, so the folder someone picks is
+reached through a grant that dies with the process. `macos/MdViewer-macOS/FolderAccess.mm`
+turns that grant into a security-scoped bookmark, `src/folderAccess.ts` wraps it
+with the same best-effort discipline as the preferences, and `App.tsx` resolves
+the bookmark before it scans. Reading anything outside the open folder needs a
+new entitlement, not just a path.
 
 `src/preferences.ts` wraps AsyncStorage and is deliberately best-effort: a
 failed read falls back to the default, a failed write is dropped, and stored

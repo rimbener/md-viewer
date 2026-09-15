@@ -119,6 +119,16 @@ width without ever growing past its natural size. Relative paths resolve
 against the folder of the document being viewed, `/absolute` paths and
 `http(s):` URLs are used as-is.
 
+## The session
+
+The folder and file open at the last quit are reopened at the next launch, with
+no dialog. A path alone is not enough for that: the sandboxed build reaches a
+folder through the open panel, and that grant ends with the process. So the
+grant is stored as a security-scoped bookmark beside the path (`FolderAccess.mm`
+makes it, `src/folderAccess.ts` reads it), which also means the folder is found
+again after it is moved or renamed. A bookmark that no longer resolves falls
+back to the folder dialog.
+
 ## Performance
 
 Parsing `react-native/README.md` (6.5 KB) takes about 1 ms. Highlighting

@@ -14,6 +14,7 @@ import { isZoomLevel } from './zoom';
 
 const ZOOM_KEY = 'mdviewer.zoom';
 const FOLDER_KEY = 'mdviewer.lastFolder';
+const BOOKMARK_KEY = 'mdviewer.lastFolderBookmark';
 const FILE_KEY = 'mdviewer.lastFile';
 const FONT_KEY = 'mdviewer.fontScheme';
 const SIDEBAR_KEY = 'mdviewer.sidebarVisible';
@@ -96,6 +97,20 @@ export async function loadLastFolder(): Promise<string | null> {
 
 export function saveLastFolder(path: string): void {
   write(FOLDER_KEY, path);
+}
+
+/**
+ * The security-scoped bookmark for that folder — the grant a sandboxed build
+ * needs to read it again. See `folderAccess.ts`.
+ */
+export async function loadFolderBookmark(): Promise<string | null> {
+  const stored = await read(BOOKMARK_KEY);
+  return stored === null || stored === '' ? null : stored;
+}
+
+/** Passing null forgets the grant, which is what changing folder should do. */
+export function saveFolderBookmark(bookmark: string | null): void {
+  write(BOOKMARK_KEY, bookmark);
 }
 
 /** The file open when the app last closed. */
