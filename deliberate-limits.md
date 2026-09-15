@@ -104,13 +104,15 @@ underneath the buffer, and a wider sandbox grant, because the entitlements ask
 only for read-only access to what the person picked. Nothing can be written
 even while the folder is open.
 
-## The document reparses on every keystroke
+## The preview trails the typing by a moment
 
-There is no debounce: the preview is rebuilt from the whole source each time it
-changes, which is what makes it feel live. Parsing is fast enough for prose,
-but a document of a few hundred thousand characters will type roughly. Past
-500,000 characters the editor is disabled outright, because that document is
-already falling back to plain text.
+The editor takes every keystroke, but the preview waits 150 ms after the last
+one and then rebuilds from the whole source. A burst of typing therefore parses
+once instead of once per character, and the document still follows closely
+enough to read as live. There is no incremental parse: the debounce makes the
+work less frequent, not smaller, so a document of a few hundred thousand
+characters still types roughly. Past 500,000 characters the editor is disabled
+outright, because that document is already falling back to plain text.
 
 ## No search and no export
 

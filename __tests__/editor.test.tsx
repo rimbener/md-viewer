@@ -44,6 +44,18 @@ beforeEach(async () => {
   await storage.setItem('mdviewer.lastFile', '/notes/notes.md');
 });
 
+const trees: ReactTestRenderer.ReactTestRenderer[] = [];
+
+// Waiting out a debounce takes real time, in which a tree left mounted by an
+// earlier test would settle its own reads and update outside `act`.
+afterEach(async () => {
+  for (const tree of trees.splice(0)) {
+    await ReactTestRenderer.act(async () => {
+      tree.unmount();
+    });
+  }
+});
+
 /** Renders the app with the stored file open and every promise settled. */
 async function renderApp(): Promise<ReactTestRenderer.ReactTestRenderer> {
   let tree: ReactTestRenderer.ReactTestRenderer;
@@ -53,6 +65,7 @@ async function renderApp(): Promise<ReactTestRenderer.ReactTestRenderer> {
   for (let pass = 0; pass < 6; pass += 1) {
     await ReactTestRenderer.act(async () => {});
   }
+  trees.push(tree!);
   return tree!;
 }
 
@@ -120,12 +133,20 @@ async function press(
   });
 }
 
+/** Types into the editor, without waiting for the preview to catch up. */
 async function type(
   tree: ReactTestRenderer.ReactTestRenderer,
   source: string,
 ): Promise<void> {
   await ReactTestRenderer.act(async () => {
     editorOf(tree).props.onChangeText(source);
+  });
+}
+
+/** Waits out the debounce, so the preview holds what was last typed. */
+async function settle(): Promise<void> {
+  await ReactTestRenderer.act(async () => {
+    await new Promise<void>(resolve => setTimeout(resolve, 200));
   });
 }
 
@@ -172,6 +193,25 @@ it('rerenders the document as the source is typed', async () => {
   await press(toggleOf(tree));
 
   await type(tree, '# Changed');
+  await settle();
+
+  expect(shows(tree, 'Changed')).toBe(true);
+  expect(shows(tree, 'Notes')).toBe(false);
+});
+
+it('holds the preview while the typing continues', async () => {
+  const tree = await renderApp();
+  await press(toggleOf(tree));
+
+  await type(tree, '# Cha');
+  await type(tree, '# Chang');
+  await type(tree, '# Changed');
+
+  // The editor takes every keystroke; the document waits for the pause.
+  expect(editorOf(tree).props.value).toBe('# Changed');
+  expect(shows(tree, 'Notes')).toBe(true);
+
+  await settle();
 
   expect(shows(tree, 'Changed')).toBe(true);
   expect(shows(tree, 'Notes')).toBe(false);
@@ -193,6 +233,7 @@ it('keeps edits when another file is opened and comes back to them', async () =>
   const tree = await renderApp();
   await press(toggleOf(tree));
   await type(tree, '# Changed');
+  await settle();
 
   await open(tree, 'other.md');
   expect(editorOf(tree).props.value).toBe('# Other');

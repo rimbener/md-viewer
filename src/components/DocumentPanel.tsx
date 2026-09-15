@@ -28,6 +28,12 @@ import { ZoomControl } from './ZoomControl';
  */
 const MAX_RENDERED_CHARACTERS = 500_000;
 
+/**
+ * How long the typing must stop before the preview is rebuilt. Long enough
+ * that a run of keystrokes parses once, short enough to still read as live.
+ */
+const REPARSE_DELAY_MS = 150;
+
 interface DocumentPanelProps {
   file: FileNode | null;
   isSidebarVisible: boolean;
@@ -44,6 +50,12 @@ export function DocumentPanel({
   const [source, setSource] = useState<string | null>(null);
   /** Edits made in this session, or null while the file is as it is on disk. */
   const [draft, setDraft] = useState<string | null>(null);
+  /**
+   * The edits the preview is built from. It trails `draft` by the debounce, so
+   * a burst of keystrokes reparses the document once instead of every time.
+   */
+  const [settledDraft, setSettledDraft] = useState<string | null>(null);
+  const reparse = useRef<ReturnType<typeof setTimeout> | null>(null);
   /**
    * Edits for every file touched this session. Nothing is written to disk, so
    * without this a glance at another document would throw the work away.
@@ -111,15 +123,24 @@ export function DocumentPanel({
   const path = file?.path ?? null;
 
   useEffect(() => {
+    // A pending reparse belongs to the file being left, not to the new one.
+    if (reparse.current !== null) {
+      clearTimeout(reparse.current);
+      reparse.current = null;
+    }
+
     if (path === null) {
       setSource(null);
       setDraft(null);
+      setSettledDraft(null);
       setError(null);
       return;
     }
 
     // Whatever was typed into this file earlier is what it should open on.
-    setDraft(drafts.current.get(path) ?? null);
+    const stored = drafts.current.get(path) ?? null;
+    setDraft(stored);
+    setSettledDraft(stored);
 
     let cancelled = false;
     setIsLoading(true);
@@ -157,20 +178,40 @@ export function DocumentPanel({
       }
       drafts.current.set(path, next);
       setDraft(next);
+      if (reparse.current !== null) {
+        clearTimeout(reparse.current);
+      }
+      reparse.current = setTimeout(() => {
+        reparse.current = null;
+        setSettledDraft(next);
+      }, REPARSE_DELAY_MS);
     },
     [path],
   );
 
-  /** What the reader sees: the edits if there are any, else what is on disk. */
-  const text = draft ?? source;
+  useEffect(
+    () => () => {
+      if (reparse.current !== null) {
+        clearTimeout(reparse.current);
+      }
+    },
+    [],
+  );
 
-  const isTruncated = text !== null && text.length > MAX_RENDERED_CHARACTERS;
+  /** What the editor holds: the edits if there are any, else what is on disk. */
+  const text = draft ?? source;
+  /** What the reader sees, which lags the editor by the debounce. */
+  const rendered = settledDraft ?? source;
+
+  const isTruncated =
+    rendered !== null && rendered.length > MAX_RENDERED_CHARACTERS;
 
   const blocks = useMemo(
-    () => (text === null || text.length > MAX_RENDERED_CHARACTERS
-      ? []
-      : parseMarkdown(text)),
-    [text],
+    () =>
+      rendered === null || rendered.length > MAX_RENDERED_CHARACTERS
+        ? []
+        : parseMarkdown(rendered),
+    [rendered],
   );
 
   // Prose is read most comfortably at a bounded line length, so the column is
@@ -233,7 +274,7 @@ export function DocumentPanel({
               lineHeight: 18 * scale,
             },
           ]}>
-          {text}
+          {rendered}
         </Text>
       ) : (
         <View style={[styles.column, { maxWidth }]}>

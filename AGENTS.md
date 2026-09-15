@@ -99,8 +99,9 @@ preferences.
 
 Editing is in-memory only. `DocumentPanel` keeps a `Map` of drafts keyed by
 path in a ref, so switching files and back keeps the work, and quitting loses
-it. The preview reparses on every keystroke, with no debounce, and documents
-over 500,000 characters fall back to plain text with the editor disabled.
+it. The preview reparses 150 ms after the last keystroke — the editor holds
+every keystroke, the parse waits for the pause — and documents over 500,000
+characters fall back to plain text with the editor disabled.
 
 ## Conventions
 
