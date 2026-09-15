@@ -19,10 +19,12 @@ import {
   type TextStyle,
 } from 'react-native';
 
+import { isGherkin, parseGherkin } from '../gherkin';
 import { resolveUri } from '../markdown/resolveUri';
 import type { Block, CellAlignment, InlineNode } from '../markdown/types';
 import { useTheme, type Theme } from '../theme';
 import { BODY_SIZE, schemeById, type FontScheme } from '../typography';
+import { Gherkin } from './Gherkin';
 
 /** Vertical rhythm between sibling blocks, before zoom. */
 const BLOCK_SPACING = 12;
@@ -32,7 +34,8 @@ type MarkdownStyles = ReturnType<typeof createStyles>;
 function createStyles(scale: number, scheme: FontScheme) {
   /** Rounds to a half pixel, which is as fine as the screen resolves. */
   const round = (value: number) => Math.round(value * 2) / 2;
-  const heading = (value: number) => round(value * scale * scheme.heading.scale);
+  const heading = (value: number) =>
+    round(value * scale * scheme.heading.scale);
   const size = (value: number) => round(value * scale * scheme.body.scale);
   const code = (value: number) => round(value * scale * scheme.code.scale);
 
@@ -53,6 +56,8 @@ function createStyles(scale: number, scheme: FontScheme) {
   }
 
   return {
+    scale,
+    scheme,
     spacing: size(BLOCK_SPACING),
     headings,
     sheet: StyleSheet.create({
@@ -180,10 +185,7 @@ export function Markdown({
   schemeId = null,
 }: MarkdownProps) {
   const scheme = useMemo(() => schemeById(schemeId), [schemeId]);
-  const styles = useMemo(
-    () => createStyles(scale, scheme),
-    [scale, scheme],
-  );
+  const styles = useMemo(() => createStyles(scale, scheme), [scale, scheme]);
 
   return (
     <StyleContext.Provider value={styles}>
@@ -271,6 +273,9 @@ function BlockView({ block, basePath, color, isFirst, spacing }: BlockProps) {
     }
 
     case 'codeBlock':
+      if (isGherkin(block.language)) {
+        return <GherkinBlock text={block.text} spacing={spacing} />;
+      }
       return (
         <View
           style={[
@@ -383,6 +388,16 @@ function BlockView({ block, basePath, color, isFirst, spacing }: BlockProps) {
         </View>
       );
   }
+}
+
+/** A ```gherkin fence, reparsed as a feature and rendered as one. */
+function GherkinBlock({ text, spacing }: { text: string; spacing: number }) {
+  const { scale, scheme } = useStyles();
+  const nodes = useMemo(() => parseGherkin(text), [text]);
+
+  return (
+    <Gherkin nodes={nodes} scale={scale} scheme={scheme} spacing={spacing} />
+  );
 }
 
 interface TableRowProps {

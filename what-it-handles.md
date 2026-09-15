@@ -42,6 +42,35 @@ matches how the same document reads on GitHub.
 Underscores inside words are left alone, so `some_long_name` survives intact
 while `_emphasised_` still works.
 
+## Gherkin
+
+A fenced block tagged `gherkin`, `feature` or `cucumber` is read as a feature
+file and laid out instead of being printed as source. Gherkin is meant to read
+as prose, so it is set in the body font, and only the parts that stand in for a
+value keep the code font.
+
+| Syntax | Rendered as |
+| --- | --- |
+| `Feature:`, `Business Need:`, `Ability:` | A labelled heading |
+| `Rule:` | A subheading, with its scenarios grouped under it |
+| `Scenario:`, `Example:`, `Background:` | A card |
+| `Scenario Outline:`, `Scenario Template:` | A card |
+| `Examples:`, `Scenarios:` | A labelled table with a header row |
+| `Given`, `When`, `Then`, `And`, `But`, `*` | A step, keyword hung in a gutter |
+| `@tag` | A chip above the section it decorates |
+| A `\|` table under a step | A data table, with no header row |
+| `"""` doc strings | An indented monospace block |
+| `# comment` | A muted line |
+| Anything else | Description text, kept as written |
+
+Inside a step or a table cell, `<outline parameters>` and `"quoted strings"`
+are picked out and coloured, because those are the two things a scenario varies
+by. Tags stack: several tag lines above one scenario all belong to it.
+
+Sections close by rank, so a `Scenario:` ends at the next `Scenario:` or `Rule:`
+without needing a blank line, and an `Examples:` block belongs to the scenario
+above it.
+
 ## Raw HTML
 
 HTML is not rendered, but its tags are dropped rather than displayed, so an

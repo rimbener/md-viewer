@@ -17,6 +17,26 @@ Fenced code blocks keep their language tag in the syntax tree, but render as
 uniform monospace text. Highlighting needs a per-language tokenizer, which is
 either a sizeable dependency or a lot of hand-written code.
 
+Gherkin is the one exception, and it earns it by not being code: a `gherkin`
+fence is a document about behaviour, its grammar is a dozen keywords, and the
+payoff is a laid-out feature rather than tinted source.
+
+## Gherkin is read, not checked
+
+The Gherkin reader never rejects anything. A line it does not recognise becomes
+description text, so a misspelled keyword shows up as prose rather than as an
+error. That is the right trade for a viewer, but it does mean the viewer is no
+substitute for running Cucumber.
+
+Only the English keywords are known, and only as Gherkin capitalises them. A
+`# language: fr` header is shown as the comment it is and otherwise ignored,
+and a lowercase `given` stays prose, because description lines that open with
+an ordinary "and" or "given" are far more common than uncapitalised steps.
+
+Gherkin is also only reached through a fenced block inside a markdown document.
+A standalone `.feature` file is not shown at all, because the folder scan only
+collects `.md` files.
+
 ## Images only render as blocks
 
 An image renders as a picture when it is alone in its paragraph. An image mixed

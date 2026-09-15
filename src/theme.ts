@@ -17,6 +17,14 @@ export interface Theme {
   /** The rule running down the left of a blockquote. */
   quoteBar: string;
   tableHeader: string;
+  /** Gherkin: the Given/When/Then that opens a step. */
+  gherkinKeyword: string;
+  /** Gherkin: an `@tag` above a scenario. */
+  gherkinTag: string;
+  /** Gherkin: an `<outline parameter>`. */
+  gherkinParameter: string;
+  /** Gherkin: a "quoted string" inside a step. */
+  gherkinString: string;
 }
 
 const light: Theme = {
@@ -34,6 +42,10 @@ const light: Theme = {
   link: '#0a66d0',
   quoteBar: '#d0d0d4',
   tableHeader: '#f7f7f8',
+  gherkinKeyword: '#8250df',
+  gherkinTag: '#1a7f37',
+  gherkinParameter: '#bc4c00',
+  gherkinString: '#0a3069',
 };
 
 const dark: Theme = {
@@ -51,6 +63,10 @@ const dark: Theme = {
   link: '#69a8f5',
   quoteBar: '#4a4a50',
   tableHeader: '#2a2a2e',
+  gherkinKeyword: '#d2a8ff',
+  gherkinTag: '#7ee787',
+  gherkinParameter: '#ffa657',
+  gherkinString: '#a5d6ff',
 };
 
 export function useTheme(): Theme {
