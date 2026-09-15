@@ -13,6 +13,7 @@
  */
 
 import { NativeModules } from 'react-native';
+import { pickDirectory } from 'react-native-document-picker-macos';
 
 type OpenedFolder = {
   path: string;
@@ -21,12 +22,33 @@ type OpenedFolder = {
 };
 
 type FolderAccessModule = {
+  choose(): Promise<string | null>;
   bookmark(path: string): Promise<string | null>;
   open(bookmark: string): Promise<OpenedFolder | null>;
   close(): void;
 };
 
 const native: FolderAccessModule | undefined = NativeModules.FolderAccess;
+
+/**
+ * Asks for a folder, and answers with its path or null when the dialog was
+ * cancelled.
+ *
+ * The panel is our own because it shows hidden files: the scan walks `.claude`
+ * and the like, so one has to be pickable as the root. Without the native
+ * module the packaged picker stands in, hiding them as the system does.
+ */
+export async function askForFolder(): Promise<string | null> {
+  try {
+    if (native !== undefined) {
+      return (await native.choose()) ?? null;
+    }
+  } catch {
+    return null;
+  }
+  const [directory] = await pickDirectory();
+  return directory?.path ?? null;
+}
 
 /** A bookmark for a folder the app may read now, or null when it cannot. */
 export async function bookmarkFolder(path: string): Promise<string | null> {

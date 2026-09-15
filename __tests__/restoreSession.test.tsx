@@ -9,12 +9,12 @@ import { readDir, readFile } from '@dr.pogodin/react-native-fs';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React from 'react';
 import ReactTestRenderer from 'react-test-renderer';
-import { pickDirectory } from 'react-native-document-picker-macos';
 
 import App from '../App';
-import { bookmarkFolder, openFolder } from '../src/folderAccess';
+import { askForFolder, bookmarkFolder, openFolder } from '../src/folderAccess';
 
 jest.mock('../src/folderAccess', () => ({
+  askForFolder: jest.fn(async () => null),
   bookmarkFolder: jest.fn(async () => null),
   openFolder: jest.fn(async () => null),
   closeFolder: jest.fn(),
@@ -25,11 +25,13 @@ const fs = { readDir, readFile } as unknown as {
   readFile: jest.Mock;
 };
 const storage = AsyncStorage as jest.Mocked<typeof AsyncStorage>;
-const picker = pickDirectory as jest.Mock;
-const access = { bookmarkFolder, openFolder } as unknown as {
+const access = { askForFolder, bookmarkFolder, openFolder } as unknown as {
+  askForFolder: jest.Mock;
   bookmarkFolder: jest.Mock;
   openFolder: jest.Mock;
 };
+/** The open dialog, which the app only reaches when nothing can be restored. */
+const picker = access.askForFolder;
 
 /** One directory holding `notes.md` and `todo.md`. */
 function mockFolder(): void {
@@ -81,7 +83,7 @@ beforeEach(async () => {
   jest.clearAllMocks();
   mockFolder();
   fs.readFile.mockResolvedValue('# Yesterday\n\nStill here.');
-  picker.mockResolvedValue([]);
+  picker.mockResolvedValue(null);
 });
 
 it('reopens the stored folder and file without asking', async () => {
@@ -160,7 +162,7 @@ it('makes the bookmark again when the resolved one is stale', async () => {
 });
 
 it('stores a bookmark for the folder someone picks', async () => {
-  picker.mockResolvedValue([{ path: '/notes' }]);
+  picker.mockResolvedValue('/notes');
   access.bookmarkFolder.mockResolvedValueOnce('BOOKMARK');
 
   const rendered = await renderApp();

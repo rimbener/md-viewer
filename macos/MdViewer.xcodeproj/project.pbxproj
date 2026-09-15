@@ -9,11 +9,11 @@
 /* Begin PBXBuildFile section */
 		27A2DEEDF40B9792D2DD857A /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 99F4DB999703BB192BB9703D /* PrivacyInfo.xcprivacy */; };
 		5142014D2437B4B30078DB4F /* AppDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = 5142014C2437B4B30078DB4F /* AppDelegate.mm */; };
-		A1B2C3D01E2F3A4B5C6D7E81 /* FolderAccess.mm in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D01E2F3A4B5C6D7E80 /* FolderAccess.mm */; };
 		514201522437B4B40078DB4F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 514201512437B4B40078DB4F /* Assets.xcassets */; };
 		514201552437B4B40078DB4F /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 514201532437B4B40078DB4F /* Main.storyboard */; };
 		514201582437B4B40078DB4F /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 514201572437B4B40078DB4F /* main.m */; };
 		8584BFAE174B44CD8EE6F115 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 99F4DB999703BB192BB9703D /* PrivacyInfo.xcprivacy */; };
+		A1B2C3D01E2F3A4B5C6D7E81 /* FolderAccess.mm in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D01E2F3A4B5C6D7E80 /* FolderAccess.mm */; };
 		EE5C4E7EB5C9756C3A30ED62 /* libPods-MdViewer-macOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E1DE5CCE6DAF0E9BDDE0B0FE /* libPods-MdViewer-macOS.a */; };
 /* End PBXBuildFile section */
 
@@ -23,13 +23,13 @@
 		514201492437B4B30078DB4F /* MdViewer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MdViewer.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		5142014B2437B4B30078DB4F /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
 		5142014C2437B4B30078DB4F /* AppDelegate.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = AppDelegate.mm; sourceTree = "<group>"; };
-		A1B2C3D01E2F3A4B5C6D7E80 /* FolderAccess.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = FolderAccess.mm; sourceTree = "<group>"; };
 		514201512437B4B40078DB4F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		514201542437B4B40078DB4F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		514201562437B4B40078DB4F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		514201572437B4B40078DB4F /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		514201592437B4B40078DB4F /* MdViewer.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MdViewer.entitlements; sourceTree = "<group>"; };
 		99F4DB999703BB192BB9703D /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		A1B2C3D01E2F3A4B5C6D7E80 /* FolderAccess.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = FolderAccess.mm; sourceTree = "<group>"; };
 		AE5DF73250CFB03AC979D47D /* Pods-MdViewer-macOS.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-MdViewer-macOS.release.xcconfig"; path = "Target Support Files/Pods-MdViewer-macOS/Pods-MdViewer-macOS.release.xcconfig"; sourceTree = "<group>"; };
 		E1DE5CCE6DAF0E9BDDE0B0FE /* libPods-MdViewer-macOS.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-MdViewer-macOS.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };

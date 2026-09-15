@@ -1,5 +1,5 @@
 /**
- * The folder grant, written down.
+ * The folder grant: where it comes from, and how it is written down.
  *
  * A sandboxed build reaches a folder through the open panel, and that grant
  * dies with the process. A security-scoped bookmark is the grant made
@@ -28,6 +28,26 @@ RCT_EXPORT_MODULE();
 + (BOOL)requiresMainQueueSetup
 {
   return NO;
+}
+
+RCT_EXPORT_METHOD(choose:(RCTPromiseResolveBlock)resolve
+                  reject:(__unused RCTPromiseRejectBlock)reject)
+{
+  dispatch_async(dispatch_get_main_queue(), ^{
+    NSOpenPanel *panel = [NSOpenPanel openPanel];
+
+    panel.canChooseDirectories = YES;
+    panel.canChooseFiles = NO;
+    panel.allowsMultipleSelection = NO;
+    panel.resolvesAliases = YES;
+    // The scan walks hidden directories — `.claude`, `.github`, `.cursor` hold
+    // a lot of specs — so the panel has to let one be picked as the root.
+    panel.showsHiddenFiles = YES;
+
+    NSURL *url =
+        [panel runModal] == NSModalResponseOK ? panel.URLs.firstObject : nil;
+    resolve(url == nil ? nil : url.path);
+  });
 }
 
 RCT_EXPORT_METHOD(bookmark:(NSString *)path

@@ -8,11 +8,15 @@
 import { exists } from '@dr.pogodin/react-native-fs';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { pickDirectory } from 'react-native-document-picker-macos';
 
 import { DocumentPanel } from './src/components/DocumentPanel';
 import { Sidebar } from './src/components/Sidebar';
-import { bookmarkFolder, closeFolder, openFolder } from './src/folderAccess';
+import {
+  askForFolder,
+  bookmarkFolder,
+  closeFolder,
+  openFolder,
+} from './src/folderAccess';
 import {
   loadFolderBookmark,
   loadLastFile,
@@ -67,8 +71,8 @@ function App() {
 
   const chooseFolder = useCallback(async () => {
     try {
-      const [directory] = await pickDirectory();
-      if (!directory) {
+      const directory = await askForFolder();
+      if (directory === null) {
         return; // The user cancelled the dialog.
       }
       pendingFilePath.current = null;
@@ -77,9 +81,9 @@ function App() {
       // The panel's grant is live now, which is the only moment a bookmark for
       // it can be made.
       closeFolder();
-      saveFolderBookmark(await bookmarkFolder(directory.path));
-      setRootPath(directory.path);
-      saveLastFolder(directory.path);
+      saveFolderBookmark(await bookmarkFolder(directory));
+      setRootPath(directory);
+      saveLastFolder(directory);
     } catch (cause) {
       setError(
         cause instanceof Error ? cause.message : 'Could not open that folder.',

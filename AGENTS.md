@@ -84,8 +84,10 @@ The app is sandboxed in both configurations, so the folder someone picks is
 reached through a grant that dies with the process. `macos/MdViewer-macOS/FolderAccess.mm`
 turns that grant into a security-scoped bookmark, `src/folderAccess.ts` wraps it
 with the same best-effort discipline as the preferences, and `App.tsx` resolves
-the bookmark before it scans. Reading anything outside the open folder needs a
-new entitlement, not just a path.
+the bookmark before it scans. `FolderAccess.mm` also owns the open panel,
+because the packaged picker cannot show hidden files and the scan walks them.
+Reading anything outside the open folder needs a new entitlement, not just a
+path.
 
 `src/preferences.ts` wraps AsyncStorage and is deliberately best-effort: a
 failed read falls back to the default, a failed write is dropped, and stored

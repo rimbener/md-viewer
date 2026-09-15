@@ -129,6 +129,11 @@ makes it, `src/folderAccess.ts` reads it), which also means the folder is found
 again after it is moved or renamed. A bookmark that no longer resolves falls
 back to the folder dialog.
 
+That dialog is the app's own open panel, and it shows hidden files. The scan
+walks hidden directories — `.claude`, `.github` and `.cursor` are where a lot
+of specs live — so a hidden folder must also be selectable as the root.
+`cmd-shift-.` still hides them again for the length of one dialog.
+
 ## Performance
 
 Parsing `react-native/README.md` (6.5 KB) takes about 1 ms. Highlighting
