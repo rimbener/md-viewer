@@ -1,6 +1,6 @@
 /**
- * Viewer preferences that outlive a launch: the zoom level, the sidebar
- * visibility, and the folder and file that were open last.
+ * Viewer preferences that outlive a launch: the zoom level, the sidebar and
+ * editor visibility, and the folder and file that were open last.
  *
  * Storage is best-effort: a read that fails falls back to the default and a
  * write that fails is dropped, because losing a preference is never worth
@@ -17,6 +17,7 @@ const FOLDER_KEY = 'mdviewer.lastFolder';
 const FILE_KEY = 'mdviewer.lastFile';
 const FONT_KEY = 'mdviewer.fontScheme';
 const SIDEBAR_KEY = 'mdviewer.sidebarVisible';
+const EDITOR_KEY = 'mdviewer.editorVisible';
 
 async function read(key: string): Promise<string | null> {
   try {
@@ -76,6 +77,16 @@ export async function loadSidebarVisible(): Promise<boolean | null> {
 
 export function saveSidebarVisible(isVisible: boolean): void {
   write(SIDEBAR_KEY, String(isVisible));
+}
+
+/** Whether the source editor was open, or null when that was never chosen. */
+export async function loadEditorVisible(): Promise<boolean | null> {
+  const stored = await read(EDITOR_KEY);
+  return stored === null ? null : stored === 'true';
+}
+
+export function saveEditorVisible(isVisible: boolean): void {
+  write(EDITOR_KEY, String(isVisible));
 }
 
 /** The folder open when the app last closed. */
