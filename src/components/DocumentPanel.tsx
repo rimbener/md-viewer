@@ -4,8 +4,10 @@ import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-nat
 
 import { parseMarkdown } from '../markdown/parseBlocks';
 import {
+  loadEditorVisible,
   loadFontScheme,
   loadZoom,
+  saveEditorVisible,
   saveFontScheme,
   saveZoom,
 } from '../preferences';
@@ -13,6 +15,8 @@ import { useTheme } from '../theme';
 import type { FileNode } from '../types';
 import { columnWidth, DEFAULT_SCHEME_ID, schemeById } from '../typography';
 import { DEFAULT_ZOOM } from '../zoom';
+import { Editor } from './Editor';
+import { EditorToggle } from './EditorToggle';
 import { FontControl } from './FontControl';
 import { Markdown } from './Markdown';
 import { SidebarToggle } from './SidebarToggle';
@@ -38,14 +42,24 @@ export function DocumentPanel({
 }: DocumentPanelProps) {
   const theme = useTheme();
   const [source, setSource] = useState<string | null>(null);
+  /** Edits made in this session, or null while the file is as it is on disk. */
+  const [draft, setDraft] = useState<string | null>(null);
+  /**
+   * Edits for every file touched this session. Nothing is written to disk, so
+   * without this a glance at another document would throw the work away.
+   */
+  const drafts = useRef(new Map<string, string>());
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Zoom is a property of the reader rather than of the document: it survives
   // switching files, and is restored on the next launch.
   const [scale, setScale] = useState(DEFAULT_ZOOM);
   const [schemeId, setSchemeId] = useState(DEFAULT_SCHEME_ID);
+  // Reading is the common case, so the editor stays closed until asked for.
+  const [isEditorVisible, setIsEditorVisible] = useState(false);
   const hasChosenZoom = useRef(false);
   const hasChosenScheme = useRef(false);
+  const hasChosenEditor = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -60,6 +74,12 @@ export function DocumentPanel({
     loadFontScheme().then(stored => {
       if (!cancelled && stored !== null && !hasChosenScheme.current) {
         setSchemeId(stored);
+      }
+    });
+
+    loadEditorVisible().then(stored => {
+      if (!cancelled && stored !== null && !hasChosenEditor.current) {
+        setIsEditorVisible(stored);
       }
     });
 
@@ -80,14 +100,26 @@ export function DocumentPanel({
     saveFontScheme(next);
   }, []);
 
+  // The write stays out of the state updater, which React may call twice.
+  const toggleEditor = useCallback(() => {
+    hasChosenEditor.current = true;
+    const next = !isEditorVisible;
+    setIsEditorVisible(next);
+    saveEditorVisible(next);
+  }, [isEditorVisible]);
+
   const path = file?.path ?? null;
 
   useEffect(() => {
     if (path === null) {
       setSource(null);
+      setDraft(null);
       setError(null);
       return;
     }
+
+    // Whatever was typed into this file earlier is what it should open on.
+    setDraft(drafts.current.get(path) ?? null);
 
     let cancelled = false;
     setIsLoading(true);
@@ -118,14 +150,27 @@ export function DocumentPanel({
     };
   }, [path]);
 
-  const isTruncated =
-    source !== null && source.length > MAX_RENDERED_CHARACTERS;
+  const edit = useCallback(
+    (next: string) => {
+      if (path === null) {
+        return;
+      }
+      drafts.current.set(path, next);
+      setDraft(next);
+    },
+    [path],
+  );
+
+  /** What the reader sees: the edits if there are any, else what is on disk. */
+  const text = draft ?? source;
+
+  const isTruncated = text !== null && text.length > MAX_RENDERED_CHARACTERS;
 
   const blocks = useMemo(
-    () => (source === null || source.length > MAX_RENDERED_CHARACTERS
+    () => (text === null || text.length > MAX_RENDERED_CHARACTERS
       ? []
-      : parseMarkdown(source)),
-    [source],
+      : parseMarkdown(text)),
+    [text],
   );
 
   // Prose is read most comfortably at a bounded line length, so the column is
@@ -162,10 +207,56 @@ export function DocumentPanel({
     );
   }
 
+  // A document too large to parse is shown as plain text, and editing it would
+  // reparse nothing — so the source pane has nothing to offer there.
+  const canEdit = !isTruncated && error === null;
+
+  const document = (
+    // Keying on the path resets the scroll position for each document.
+    <ScrollView
+      key={file.path}
+      style={styles.body}
+      contentContainerStyle={styles.content}>
+      {isTruncated ? (
+        <Text style={[styles.message, { color: theme.mutedText }]}>
+          This file is too large to render; showing it as plain text.
+        </Text>
+      ) : null}
+      {isTruncated ? (
+        <Text
+          selectable
+          style={[
+            styles.plainText,
+            {
+              color: theme.text,
+              fontSize: 12.5 * scale,
+              lineHeight: 18 * scale,
+            },
+          ]}>
+          {text}
+        </Text>
+      ) : (
+        <View style={[styles.column, { maxWidth }]}>
+          <Markdown
+            blocks={blocks}
+            basePath={basePath}
+            scale={scale}
+            schemeId={schemeId}
+          />
+        </View>
+      )}
+    </ScrollView>
+  );
+
   return (
     <View style={styles.container}>
       <View style={[styles.header, { borderBottomColor: theme.border }]}>
         <SidebarToggle isVisible={isSidebarVisible} onToggle={onToggleSidebar} />
+        <EditorToggle
+          isVisible={isEditorVisible}
+          disabled={!canEdit}
+          onToggle={toggleEditor}
+        />
         <View style={styles.title}>
           <Text
             style={[styles.fileName, { color: theme.text }]}
@@ -175,7 +266,8 @@ export function DocumentPanel({
           <Text
             style={[styles.filePath, { color: theme.mutedText }]}
             numberOfLines={1}>
-            {file.path}
+            {/* Edits live in memory only, which is worth saying out loud. */}
+            {draft === null ? file.path : `${file.path} — edited, not saved`}
           </Text>
         </View>
         <FontControl schemeId={schemeId} onChange={changeScheme} />
@@ -192,41 +284,14 @@ export function DocumentPanel({
             {error}
           </Text>
         </View>
+      ) : isEditorVisible && canEdit ? (
+        <View style={styles.split}>
+          <Editor value={text ?? ''} scale={scale} onChange={edit} />
+          <View style={[styles.splitBorder, { backgroundColor: theme.border }]} />
+          <View style={styles.preview}>{document}</View>
+        </View>
       ) : (
-        // Keying on the path resets the scroll position for each document.
-        <ScrollView
-          key={file.path}
-          style={styles.body}
-          contentContainerStyle={styles.content}>
-          {isTruncated ? (
-            <Text style={[styles.message, { color: theme.mutedText }]}>
-              This file is too large to render; showing it as plain text.
-            </Text>
-          ) : null}
-          {isTruncated ? (
-            <Text
-              selectable
-              style={[
-                styles.plainText,
-                {
-                  color: theme.text,
-                  fontSize: 12.5 * scale,
-                  lineHeight: 18 * scale,
-                },
-              ]}>
-              {source}
-            </Text>
-          ) : (
-            <View style={[styles.column, { maxWidth }]}>
-              <Markdown
-                blocks={blocks}
-                basePath={basePath}
-                scale={scale}
-                schemeId={schemeId}
-              />
-            </View>
-          )}
-        </ScrollView>
+        document
       )}
     </View>
   );
@@ -264,6 +329,17 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
   body: {
+    flex: 1,
+  },
+  // Source on the left, rendered document on the right, an even split.
+  split: {
+    flex: 1,
+    flexDirection: 'row',
+  },
+  splitBorder: {
+    width: 1,
+  },
+  preview: {
     flex: 1,
   },
   content: {
