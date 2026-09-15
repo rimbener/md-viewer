@@ -78,8 +78,9 @@ so a half-written or mis-tagged block still renders as itself.
 
 A fenced block tagged `gherkin`, `feature` or `cucumber` is read as a feature
 file and laid out instead of being printed as source. Gherkin is meant to read
-as prose, so it is set in the body font, and only the parts that stand in for a
-value keep the code font.
+as prose, so it is set in the body font. The code font is kept for the parts
+that stand in for a value, and for the step keywords, which are fixed
+vocabulary rather than prose.
 
 | Syntax | Rendered as |
 | --- | --- |
@@ -88,7 +89,7 @@ value keep the code font.
 | `Scenario:`, `Example:`, `Background:` | A card |
 | `Scenario Outline:`, `Scenario Template:` | A card |
 | `Examples:`, `Scenarios:` | A labelled table with a header row |
-| `Given`, `When`, `Then`, `And`, `But`, `*` | A step, keyword hung in a gutter |
+| `Given`, `When`, `Then`, `And`, `But`, `*` | A step, monospace keyword in a gutter |
 | `@tag` | A chip above the section it decorates |
 | A `\|` table under a step | A data table, with no header row |
 | `"""` doc strings | An indented monospace block |

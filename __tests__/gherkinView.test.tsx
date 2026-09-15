@@ -4,6 +4,7 @@ import ReactTestRenderer from 'react-test-renderer';
 
 import { Markdown } from '../src/components/Markdown';
 import { parseMarkdown } from '../src/markdown/parseBlocks';
+import { FONT_SCHEMES } from '../src/typography';
 
 const FEATURE = [
   '```gherkin',
@@ -52,11 +53,13 @@ function strings(tree: ReactTestRenderer.ReactTestRenderer): string[] {
   return out;
 }
 
-/** The first `Text` whose own content is exactly `content`. */
+/** The first `Text` whose own content is, or ends with, `content`. */
 function textFor(tree: ReactTestRenderer.ReactTestRenderer, content: string) {
+  const own = (children: unknown) =>
+    Array.isArray(children) ? children[children.length - 1] : children;
   const match = tree.root
     .findAllByType(Text)
-    .find(node => node.props.children === content);
+    .find(node => own(node.props.children) === content);
   if (match === undefined) {
     throw new Error(`no Text rendering ${JSON.stringify(content)}`);
   }
@@ -99,6 +102,22 @@ describe('a gherkin fence', () => {
     expect(textFor(tree, 'Given').textAlign).toBe('right');
   });
 
+  it('sets step keywords in the code font in every scheme', () => {
+    for (const scheme of FONT_SCHEMES) {
+      const tree = render(FEATURE, 1, scheme.id);
+      const keyword = textFor(tree, 'Given');
+
+      expect(keyword.fontFamily).toBe(textFor(tree, '<kind>').fontFamily);
+      expect(keyword.fontFamily).not.toBe(
+        textFor(tree, 'Step appearance').fontFamily,
+      );
+      // The keyword still sits on the baseline of the step text beside it.
+      expect(keyword.lineHeight).toBe(
+        textFor(tree, 'Step appearance').lineHeight,
+      );
+    }
+  });
+
   it('colours outline parameters and quoted strings differently', () => {
     const tree = render(FEATURE);
     const parameter = textFor(tree, '<kind>');
@@ -107,7 +126,9 @@ describe('a gherkin fence', () => {
     expect(parameter.color).not.toBe(quoted.color);
     // Both stand in for a value, so both keep the code font.
     expect(parameter.fontFamily).toBe(quoted.fontFamily);
-    expect(parameter.fontFamily).not.toBe(textFor(tree, 'Given').fontFamily);
+    expect(parameter.fontFamily).not.toBe(
+      textFor(tree, 'Step appearance').fontFamily,
+    );
   });
 
   it('lays an Examples block out as a table', () => {

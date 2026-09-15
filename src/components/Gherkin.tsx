@@ -3,8 +3,9 @@
  *
  * The point of Gherkin is that it reads as prose, so it is set in the body
  * font: scenarios become cards, steps hang their keyword in a gutter, and an
- * Examples block becomes a real table. Only the parts that stand in for values
- * — `<parameters>`, "strings" and doc strings — keep the code font.
+ * Examples block becomes a real table. The code font is kept for the parts
+ * that stand in for values — `<parameters>`, "strings" and doc strings — and
+ * for the step keywords, which are fixed vocabulary rather than prose.
  */
 
 import { useMemo } from 'react';
@@ -89,8 +90,9 @@ function createStyles(scale: number, scheme: FontScheme) {
         alignItems: 'flex-start',
       },
       stepKeyword: {
-        fontFamily: scheme.body.family,
-        fontSize: size(BODY_SIZE),
+        fontFamily: scheme.code.family,
+        fontSize: code(12.5),
+        // Body line height, so the keyword sits on the step text's baseline.
         lineHeight: size(21),
         fontWeight: '600',
         width: size(46),
