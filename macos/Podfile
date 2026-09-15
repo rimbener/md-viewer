@@ -24,5 +24,15 @@ target 'MdViewer-macOS' do
 
   post_install do |installer|
     react_native_post_install(installer)
+
+    # react-native-fs still declares :osx => "10.13"; Xcode 27 refuses anything below 12.0.
+    installer.pods_project.targets.each do |t|
+      t.build_configurations.each do |config|
+        target = config.build_settings['MACOSX_DEPLOYMENT_TARGET']
+        if target && Gem::Version.new(target) < Gem::Version.new('14.0')
+          config.build_settings['MACOSX_DEPLOYMENT_TARGET'] = '14.0'
+        end
+      end
+    end
   end
 end
