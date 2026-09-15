@@ -25,6 +25,20 @@ export interface Theme {
   gherkinParameter: string;
   /** Gherkin: a "quoted string" inside a step. */
   gherkinString: string;
+  /** Code: a comment, in any highlighted language. */
+  syntaxComment: string;
+  /** Code: a language keyword, a CSS at-rule, an HTML doctype. */
+  syntaxKeyword: string;
+  /** Code: a string, a regex, an HTML attribute value. */
+  syntaxString: string;
+  /** Code: a number, a literal, an HTML entity, a CSS value. */
+  syntaxConstant: string;
+  /** Code: an HTML tag name, a CSS selector. */
+  syntaxTag: string;
+  /** Code: an HTML attribute name, a CSS property name. */
+  syntaxAttribute: string;
+  /** Code: a name being called. */
+  syntaxFunction: string;
 }
 
 const light: Theme = {
@@ -46,6 +60,13 @@ const light: Theme = {
   gherkinTag: '#1a7f37',
   gherkinParameter: '#bc4c00',
   gherkinString: '#0a3069',
+  syntaxComment: '#6e7781',
+  syntaxKeyword: '#cf222e',
+  syntaxString: '#0a3069',
+  syntaxConstant: '#0550ae',
+  syntaxTag: '#116329',
+  syntaxAttribute: '#0550ae',
+  syntaxFunction: '#8250df',
 };
 
 const dark: Theme = {
@@ -67,6 +88,13 @@ const dark: Theme = {
   gherkinTag: '#7ee787',
   gherkinParameter: '#ffa657',
   gherkinString: '#a5d6ff',
+  syntaxComment: '#8b949e',
+  syntaxKeyword: '#ff7b72',
+  syntaxString: '#a5d6ff',
+  syntaxConstant: '#79c0ff',
+  syntaxTag: '#7ee787',
+  syntaxAttribute: '#79c0ff',
+  syntaxFunction: '#d2a8ff',
 };
 
 export function useTheme(): Theme {

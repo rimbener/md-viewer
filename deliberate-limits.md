@@ -11,15 +11,23 @@ appearing. Rendering HTML would mean a second parser and a second renderer for
 a subset of the web platform, which is a much larger project than the markdown
 support itself.
 
-## No syntax highlighting
+## Syntax highlighting covers three languages
 
-Fenced code blocks keep their language tag in the syntax tree, but render as
-uniform monospace text. Highlighting needs a per-language tokenizer, which is
-either a sizeable dependency or a lot of hand-written code.
+HTML, CSS and JavaScript/TypeScript are tinted; every other fence renders as
+uniform monospace. Each language costs a hand-written tokeniser, so the list
+grows one language at a time rather than by taking a dependency.
 
-Gherkin is the one exception, and it earns it by not being code: a `gherkin`
-fence is a document about behaviour, its grammar is a dozen keywords, and the
-payoff is a laid-out feature rather than tinted source.
+The highlighter is shallow on purpose. It marks lexical categories, not
+meaning: a name is tinted as a call because a `(` follows it, not because it is
+a function, and types, classes and variables are all plain text. JSX is read as
+JavaScript, so `<View>` in a `tsx` fence gets no tag colour. A `${…}`
+interpolation is found by counting braces, so a `}` inside a string inside an
+interpolation closes it early.
+
+Gherkin remains the one fence that is not highlighted but *laid out*, and it
+earns that by not being code: a `gherkin` fence is a document about behaviour,
+its grammar is a dozen keywords, and the payoff is a feature rather than tinted
+source.
 
 ## Gherkin is read, not checked
 

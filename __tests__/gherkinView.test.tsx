@@ -85,7 +85,8 @@ describe('a gherkin fence', () => {
     const tree = render('```ts\nconst a = 1;\n```');
 
     expect(tree.root.findAllByType(ScrollView)).toHaveLength(1);
-    expect(strings(tree)).toEqual(['const a = 1;']);
+    // The code block tints its tokens, so the source arrives in pieces.
+    expect(strings(tree).join('')).toBe('const a = 1;');
   });
 
   it('sets step keywords apart from the step text', () => {

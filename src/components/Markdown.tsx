@@ -20,6 +20,7 @@ import {
 } from 'react-native';
 
 import { isGherkin, parseGherkin } from '../gherkin';
+import { highlight, languageOf, type TokenKind } from '../highlight';
 import { resolveUri } from '../markdown/resolveUri';
 import type { Block, CellAlignment, InlineNode } from '../markdown/types';
 import { useTheme, type Theme } from '../theme';
@@ -292,9 +293,7 @@ function BlockView({ block, basePath, color, isFirst, spacing }: BlockProps) {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={sheet.codeBlockContent}
           >
-            <Text selectable style={[sheet.codeText, { color: theme.text }]}>
-              {block.text}
-            </Text>
+            <CodeText language={block.language} text={block.text} />
           </ScrollView>
         </View>
       );
@@ -388,6 +387,53 @@ function BlockView({ block, basePath, color, isFirst, spacing }: BlockProps) {
         </View>
       );
   }
+}
+
+/** Which colour of the theme stands for each kind of token. */
+const TOKEN_COLOR: Record<TokenKind, keyof Theme> = {
+  text: 'text',
+  comment: 'syntaxComment',
+  keyword: 'syntaxKeyword',
+  string: 'syntaxString',
+  constant: 'syntaxConstant',
+  tag: 'syntaxTag',
+  attribute: 'syntaxAttribute',
+  function: 'syntaxFunction',
+};
+
+/** The body of a fence, tinted when its language is one we can read. */
+function CodeText({
+  language,
+  text,
+}: {
+  language: string | null;
+  text: string;
+}) {
+  const theme = useTheme();
+  const { sheet } = useStyles();
+  const tokens = useMemo(() => {
+    const known = languageOf(language);
+    return known === null ? null : highlight(text, known);
+  }, [language, text]);
+
+  return (
+    <Text selectable style={[sheet.codeText, { color: theme.text }]}>
+      {tokens === null
+        ? text
+        : tokens.map((token, index) =>
+            token.kind === 'text' ? (
+              token.text
+            ) : (
+              <Text
+                key={index}
+                style={{ color: theme[TOKEN_COLOR[token.kind]] }}
+              >
+                {token.text}
+              </Text>
+            ),
+          )}
+    </Text>
+  );
 }
 
 /** A ```gherkin fence, reparsed as a feature and rendered as one. */

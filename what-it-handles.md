@@ -42,6 +42,38 @@ matches how the same document reads on GitHub.
 Underscores inside words are left alone, so `some_long_name` survives intact
 while `_emphasised_` still works.
 
+## Syntax highlighting
+
+A fence tagged with one of these languages is tokenised and tinted. Every other
+fence renders as uniform monospace.
+
+| Fence | Read as |
+| --- | --- |
+| `html`, `htm` | HTML |
+| `css` | CSS |
+| `js`, `jsx`, `mjs`, `cjs`, `javascript` | JavaScript |
+| `ts`, `tsx`, `typescript` | TypeScript |
+
+- **HTML** — tag names, attribute names and values, comments, doctypes and
+  `&entities;`. The body of `<script>` and `<style>` goes to the JavaScript and
+  CSS readers, so an inline stylesheet is highlighted as the stylesheet it is.
+- **CSS** — selectors, property names, values, at-rules, the `(min-width: 40em)`
+  condition of an at-rule, `!important`, strings and comments. A block opened by
+  `@media`, `@supports`, `@layer`, `@container`, `@scope`, `@document` or
+  `@keyframes` holds rules; every other block holds declarations.
+- **JavaScript and TypeScript** — keywords, including the TypeScript ones,
+  literals, numbers, names being called, both comment forms, strings, regex
+  literals, and template literals, whose `${…}` is tokenised as the code it is.
+  A `/` is read as a regex only where a value cannot stand, and a regex never
+  crosses a line, so a division is never mistaken for one.
+
+Seven colours carry the tokens — comment, keyword, string, constant, tag,
+attribute and name being called — and each has a light and a dark value.
+
+Like the Gherkin reader, the highlighter is a *reader*: it rejects nothing, its
+scans are all bounded, and the tokens always concatenate back into the source,
+so a half-written or mis-tagged block still renders as itself.
+
 ## Gherkin
 
 A fenced block tagged `gherkin`, `feature` or `cucumber` is read as a feature
@@ -88,6 +120,7 @@ against the folder of the document being viewed, `/absolute` paths and
 
 ## Performance
 
-Parsing `react-native/README.md` (6.5 KB) takes about 1 ms. The parser is
-also fuzzed against randomized markdown-marker input to confirm it always
-terminates.
+Parsing `react-native/README.md` (6.5 KB) takes about 1 ms. Highlighting
+`src/components/Markdown.tsx` (17 KB of TSX) takes about 0.9 ms. Both are
+fuzzed against randomized input — markdown markers for the parser, punctuation
+for the highlighter — to confirm they always terminate.
