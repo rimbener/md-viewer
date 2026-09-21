@@ -7,22 +7,22 @@ react-native components. No markdown dependency is involved.
 
 ## Blocks
 
-| Syntax | Notes |
-| --- | --- |
-| `# Heading` … `###### Heading` | Closing `#`s are optional and trimmed |
-| `Heading` over `===` or `---` | Setext headings, levels 1 and 2 |
-| Paragraphs | Soft line breaks collapse to a space |
-| Two trailing spaces, or a trailing `\` | Hard break — the newline is kept |
-| ` ```lang ` fenced code | Runs to the end of the document if never closed |
-| Four-space indented code | Language is unset |
-| `> quoted` | Nests, and supports lazy continuation lines |
-| `- item`, `* item`, `+ item` | Nested lists at any depth |
-| `1. item`, `3) item` | The starting number is preserved |
-| `---`, `***`, `___` | Thematic rules |
-| GFM tables | `:--`, `:-:` and `--:` set per-column alignment |
-| `---` front matter | Stripped, not rendered |
+| Syntax                                 | Notes                                           |
+| -------------------------------------- | ----------------------------------------------- |
+| `# Heading` … `###### Heading`         | Closing `#`s are optional and trimmed           |
+| `Heading` over `===` or `---`          | Setext headings, levels 1 and 2                 |
+| Paragraphs                             | Soft line breaks collapse to a space            |
+| Two trailing spaces, or a trailing `\` | Hard break — the newline is kept                |
+| ` ```lang ` fenced code                | Runs to the end of the document if never closed |
+| Four-space indented code               | Language is unset                               |
+| `> quoted`                             | Nests, and supports lazy continuation lines     |
+| `- item`, `* item`, `+ item`           | Nested lists at any depth                       |
+| `1. item`, `3) item`                   | The starting number is preserved                |
+| `---`, `***`, `___`                    | Thematic rules                                  |
+| GFM tables                             | `:--`, `:-:` and `--:` set per-column alignment |
+| `---` front matter                     | Stripped, not rendered                          |
 
-Lists are classified as *tight* or *loose*: a blank line between two items, or
+Lists are classified as _tight_ or _loose_: a blank line between two items, or
 between blocks inside one item, adds vertical spacing to the whole list. That
 matches how the same document reads on GitHub.
 
@@ -47,12 +47,12 @@ while `_emphasised_` still works.
 A fence tagged with one of these languages is tokenised and tinted. Every other
 fence renders as uniform monospace.
 
-| Fence | Read as |
-| --- | --- |
-| `html`, `htm` | HTML |
-| `css` | CSS |
+| Fence                                   | Read as    |
+| --------------------------------------- | ---------- |
+| `html`, `htm`                           | HTML       |
+| `css`                                   | CSS        |
 | `js`, `jsx`, `mjs`, `cjs`, `javascript` | JavaScript |
-| `ts`, `tsx`, `typescript` | TypeScript |
+| `ts`, `tsx`, `typescript`               | TypeScript |
 
 - **HTML** — tag names, attribute names and values, comments, doctypes and
   `&entities;`. The body of `<script>` and `<style>` goes to the JavaScript and
@@ -70,7 +70,7 @@ fence renders as uniform monospace.
 Seven colours carry the tokens — comment, keyword, string, constant, tag,
 attribute and name being called — and each has a light and a dark value.
 
-Like the Gherkin reader, the highlighter is a *reader*: it rejects nothing, its
+Like the Gherkin reader, the highlighter is a _reader_: it rejects nothing, its
 scans are all bounded, and the tokens always concatenate back into the source,
 so a half-written or mis-tagged block still renders as itself.
 
@@ -82,19 +82,19 @@ as prose, so it is set in the body font. The code font is kept for the parts
 that stand in for a value, and for the step keywords, which are fixed
 vocabulary rather than prose.
 
-| Syntax | Rendered as |
-| --- | --- |
-| `Feature:`, `Business Need:`, `Ability:` | A labelled heading |
-| `Rule:` | A subheading, with its scenarios grouped under it |
-| `Scenario:`, `Example:`, `Background:` | A card |
-| `Scenario Outline:`, `Scenario Template:` | A card |
-| `Examples:`, `Scenarios:` | A labelled table with a header row |
-| `Given`, `When`, `Then`, `And`, `But`, `*` | A step, monospace keyword in a gutter |
-| `@tag` | A chip above the section it decorates |
-| A `\|` table under a step | A data table, with no header row |
-| `"""` doc strings | An indented monospace block |
-| `# comment` | A muted line |
-| Anything else | Description text, kept as written |
+| Syntax                                     | Rendered as                                       |
+| ------------------------------------------ | ------------------------------------------------- |
+| `Feature:`, `Business Need:`, `Ability:`   | A labelled heading                                |
+| `Rule:`                                    | A subheading, with its scenarios grouped under it |
+| `Scenario:`, `Example:`, `Background:`     | A card                                            |
+| `Scenario Outline:`, `Scenario Template:`  | A card                                            |
+| `Examples:`, `Scenarios:`                  | A labelled table with a header row                |
+| `Given`, `When`, `Then`, `And`, `But`, `*` | A step, monospace keyword in a gutter             |
+| `@tag`                                     | A chip above the section it decorates             |
+| A `\|` table under a step                  | A data table, with no header row                  |
+| `"""` doc strings                          | An indented monospace block                       |
+| `# comment`                                | A muted line                                      |
+| Anything else                              | Description text, kept as written                 |
 
 Inside a step or a table cell, `<outline parameters>` and `"quoted strings"`
 are picked out and coloured, because those are the two things a scenario varies
@@ -129,10 +129,18 @@ makes it, `src/folderAccess.ts` reads it), which also means the folder is found
 again after it is moved or renamed. A bookmark that no longer resolves falls
 back to the folder dialog.
 
+Zoom, the font scheme and the line length are properties of the reader: they
+survive switching files and come back on the next launch.
+
 That dialog is the app's own open panel, and it shows hidden files. The scan
 walks hidden directories — `.claude`, `.github` and `.cursor` are where a lot
 of specs live — so a hidden folder must also be selectable as the root.
 `cmd-shift-.` still hides them again for the length of one dialog.
+
+The scan walks three directory levels from the folder it starts at. Clicking a
+folder in the tree walks that folder again, so a file deeper than three levels,
+or added since the last walk of that folder, appears then. Reload walks the
+open root again without asking for it. The folder is not watched.
 
 ## Performance
 

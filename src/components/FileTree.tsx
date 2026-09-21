@@ -22,7 +22,8 @@ function flatten(
   rows: Row[],
 ): void {
   for (const node of nodes) {
-    const isExpanded = node.kind === 'directory' && expandedPaths.has(node.path);
+    const isExpanded =
+      node.kind === 'directory' && expandedPaths.has(node.path);
     rows.push({ node, depth, isExpanded });
 
     if (node.kind === 'directory' && isExpanded) {
@@ -52,9 +53,15 @@ interface FileTreeProps {
   root: DirectoryNode;
   selectedPath: string | null;
   onSelectFile: (file: FileNode) => void;
+  onSelectDirectory: (directory: DirectoryNode) => void;
 }
 
-export function FileTree({ root, selectedPath, onSelectFile }: FileTreeProps) {
+export function FileTree({
+  root,
+  selectedPath,
+  onSelectFile,
+  onSelectDirectory,
+}: FileTreeProps) {
   const theme = useTheme();
   // The root starts open, as does the path to a restored selection; everything
   // else starts collapsed.
@@ -104,18 +111,23 @@ export function FileTree({ root, selectedPath, onSelectFile }: FileTreeProps) {
             isSelected && { backgroundColor: theme.selectedBackground },
             pressed && !isSelected && { backgroundColor: theme.hairline },
           ]}
+          accessibilityRole="button"
+          accessibilityLabel={isDirectory ? `${node.name} folder` : node.name}
           onPress={() => {
             if (isDirectory) {
+              onSelectDirectory(node);
               toggleDirectory(node.path);
             } else {
               onSelectFile(node);
             }
-          }}>
+          }}
+        >
           <Text
             style={[
               styles.disclosure,
               { color: isSelected ? theme.selectedText : theme.mutedText },
-            ]}>
+            ]}
+          >
             {isDirectory ? (isExpanded ? '▾' : '▸') : ''}
           </Text>
           <Text
@@ -124,13 +136,14 @@ export function FileTree({ root, selectedPath, onSelectFile }: FileTreeProps) {
               styles.label,
               { color: isSelected ? theme.selectedText : theme.text },
               isDirectory && styles.directoryLabel,
-            ]}>
+            ]}
+          >
             {node.name}
           </Text>
         </Pressable>
       );
     },
-    [selectedPath, theme, toggleDirectory, onSelectFile],
+    [selectedPath, theme, toggleDirectory, onSelectFile, onSelectDirectory],
   );
 
   return (

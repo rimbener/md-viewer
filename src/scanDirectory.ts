@@ -5,8 +5,8 @@ import type { DirectoryNode, FileNode, TreeNode } from './types';
 /** Extensions treated as markdown. */
 const MARKDOWN_EXTENSIONS = ['.md', '.mdc'];
 
-/** Guards against pathological trees and symlink loops. */
-const MAX_DEPTH = 12;
+/** Each walk is shallow; a deeper folder is read when selected. */
+const MAX_DEPTH = 3;
 
 function isMarkdown(name: string): boolean {
   const lower = name.toLowerCase();
@@ -49,19 +49,21 @@ async function scan(
 ): Promise<DirectoryNode> {
   const children: TreeNode[] = [];
 
-  if (depth < MAX_DEPTH) {
-    // A directory we lack permission to read should not sink the whole scan.
-    let entries: ReadDirResItemT[];
-    try {
-      entries = await readDir(path);
-    } catch {
-      entries = [];
-    }
+  // A directory we lack permission to read should not sink the whole scan.
+  let entries: ReadDirResItemT[];
+  try {
+    entries = await readDir(path);
+  } catch {
+    entries = [];
+  }
 
+  const directories = entries.filter(
+    entry => entry.isDirectory() && !isSkipped(entry.name),
+  );
+
+  if (depth + 1 < MAX_DEPTH) {
     const subdirectories = await Promise.all(
-      entries
-        .filter(entry => entry.isDirectory() && !isSkipped(entry.name))
-        .map(entry => scan(entry.path, entry.name, depth + 1)),
+      directories.map(entry => scan(entry.path, entry.name, depth + 1)),
     );
 
     for (const subdirectory of subdirectories) {
@@ -70,11 +72,21 @@ async function scan(
         children.push(subdirectory);
       }
     }
+  } else {
+    // A folder past the walk must stay visible so a click can read it.
+    for (const entry of directories) {
+      children.push({
+        kind: 'directory',
+        name: entry.name,
+        path: entry.path,
+        children: [],
+      });
+    }
+  }
 
-    for (const entry of entries) {
-      if (entry.isFile() && isMarkdown(entry.name)) {
-        children.push({ kind: 'file', name: entry.name, path: entry.path });
-      }
+  for (const entry of entries) {
+    if (entry.isFile() && isMarkdown(entry.name)) {
+      children.push({ kind: 'file', name: entry.name, path: entry.path });
     }
   }
 
@@ -90,6 +102,56 @@ async function scan(
 export async function scanDirectory(rootPath: string): Promise<DirectoryNode> {
   const name = rootPath.split('/').filter(Boolean).pop() ?? rootPath;
   return scan(rootPath, name, 0);
+}
+
+/** Replaces the directory at `replacement.path` and leaves every other branch. */
+export function replaceDirectory(
+  tree: DirectoryNode,
+  replacement: DirectoryNode,
+): DirectoryNode {
+  if (tree.path === replacement.path) {
+    return replacement;
+  }
+  if (!replacement.path.startsWith(`${tree.path}/`)) {
+    return tree;
+  }
+
+  let changed = false;
+  const children = tree.children.map(child => {
+    if (child.kind !== 'directory') {
+      return child;
+    }
+    const next = replaceDirectory(child, replacement);
+    if (next !== child) {
+      changed = true;
+    }
+    return next;
+  });
+
+  return changed ? { ...tree, children } : tree;
+}
+
+/** Walks from `rootPath` until `filePath` is a node, or the ancestors run out. */
+export async function scanToFile(
+  rootPath: string,
+  filePath: string,
+): Promise<DirectoryNode> {
+  let tree = await scanDirectory(rootPath);
+  if (findFile(tree, filePath) !== null) {
+    return tree;
+  }
+
+  for (const ancestor of ancestorPaths(filePath, rootPath).reverse()) {
+    if (ancestor === rootPath) {
+      continue;
+    }
+    tree = replaceDirectory(tree, await scanDirectory(ancestor));
+    if (findFile(tree, filePath) !== null) {
+      return tree;
+    }
+  }
+
+  return tree;
 }
 
 /** Total number of markdown files in a tree. */

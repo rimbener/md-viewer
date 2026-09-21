@@ -8,7 +8,9 @@ import {
   ancestorPaths,
   countFiles,
   findFile,
+  replaceDirectory,
   scanDirectory,
+  scanToFile,
 } from '../src/scanDirectory';
 import type { DirectoryNode, TreeNode } from '../src/types';
 
@@ -139,6 +141,69 @@ test('survives an unreadable subdirectory', async () => {
   const tree = await scanDirectory('/docs');
 
   expect(tree.children.map(child => child.name)).toEqual(['ok.md']);
+});
+
+test('walks three directory levels and keeps the next folder', async () => {
+  mockFs({
+    '/docs': ['a/'],
+    '/docs/a': ['b/'],
+    '/docs/a/b': ['c/'],
+    '/docs/a/b/c': ['d/'],
+    '/docs/a/b/c/d': ['buried.md'],
+  });
+
+  expect(outline(await scanDirectory('/docs'))).toEqual([
+    'docs/',
+    '  a/',
+    '    b/',
+    '      c/',
+  ]);
+});
+
+test('replaceDirectory grafts a rescanned branch', () => {
+  const tree: DirectoryNode = {
+    kind: 'directory',
+    name: 'docs',
+    path: '/docs',
+    children: [
+      {
+        kind: 'directory',
+        name: 'a',
+        path: '/docs/a',
+        children: [],
+      },
+      { kind: 'file', name: 'top.md', path: '/docs/top.md' },
+    ],
+  };
+  const branch: DirectoryNode = {
+    kind: 'directory',
+    name: 'a',
+    path: '/docs/a',
+    children: [{ kind: 'file', name: 'new.md', path: '/docs/a/new.md' }],
+  };
+
+  expect(outline(replaceDirectory(tree, branch))).toEqual([
+    'docs/',
+    '  a/',
+    '    new.md',
+    '  top.md',
+  ]);
+});
+
+test('scanToFile walks past the depth cap to a stored file', async () => {
+  mockFs({
+    '/docs': ['a/'],
+    '/docs/a': ['b/'],
+    '/docs/a/b': ['c/'],
+    '/docs/a/b/c': ['d/'],
+    '/docs/a/b/c/d': ['buried.md'],
+  });
+
+  const tree = await scanToFile('/docs', '/docs/a/b/c/d/buried.md');
+
+  expect(findFile(tree, '/docs/a/b/c/d/buried.md')).toMatchObject({
+    name: 'buried.md',
+  });
 });
 
 test('counts markdown files across the whole tree', async () => {

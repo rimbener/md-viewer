@@ -27,7 +27,13 @@ import {
   saveLastFolder,
   saveSidebarVisible,
 } from './src/preferences';
-import { countFiles, findFile, scanDirectory } from './src/scanDirectory';
+import {
+  countFiles,
+  findFile,
+  replaceDirectory,
+  scanDirectory,
+  scanToFile,
+} from './src/scanDirectory';
 import { useTheme } from './src/theme';
 import type { DirectoryNode, FileNode } from './src/types';
 
@@ -39,6 +45,8 @@ function App() {
   const [rootPath, setRootPath] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Same folder, new walk: the tree is otherwise only rebuilt when the path changes.
+  const [scanNonce, setScanNonce] = useState(0);
   // Until the stored session has been read there is nothing to show but a
   // folder dialog that may turn out to be unnecessary.
   const [isRestoring, setIsRestoring] = useState(true);
@@ -96,6 +104,29 @@ function App() {
     saveLastFile(file.path);
   }, []);
 
+  const reloadFolder = useCallback(() => {
+    setScanNonce(previous => previous + 1);
+  }, []);
+
+  const selectDirectory = useCallback((directory: DirectoryNode) => {
+    scanDirectory(directory.path)
+      .then(branch => {
+        setRoot(current =>
+          current === null ? current : replaceDirectory(current, branch),
+        );
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    setSelectedFile(current => {
+      if (current === null || root === null) {
+        return current;
+      }
+      return findFile(root, current.path) === null ? null : current;
+    });
+  }, [root]);
+
   useEffect(() => {
     if (rootPath === null) {
       return;
@@ -105,7 +136,11 @@ function App() {
     setIsScanning(true);
     setError(null);
 
-    scanDirectory(rootPath)
+    const target = pendingFilePath.current;
+    const walk =
+      target === null ? scanDirectory(rootPath) : scanToFile(rootPath, target);
+
+    walk
       .then(tree => {
         if (cancelled) {
           return;
@@ -114,7 +149,6 @@ function App() {
 
         // A restored file only becomes selectable once the tree holding it
         // exists, and it may have been deleted in the meantime.
-        const target = pendingFilePath.current;
         pendingFilePath.current = null;
         if (target !== null) {
           const restored = findFile(tree, target);
@@ -140,7 +174,7 @@ function App() {
     return () => {
       cancelled = true;
     };
-  }, [rootPath]);
+  }, [rootPath, scanNonce]);
 
   const fileCount = useMemo(() => (root ? countFiles(root) : 0), [root]);
 
@@ -185,7 +219,9 @@ function App() {
           error={error}
           fileCount={fileCount}
           onChooseFolder={chooseFolder}
+          onReloadFolder={reloadFolder}
           onSelectFile={selectFile}
+          onSelectDirectory={selectDirectory}
         />
       ) : null}
       <DocumentPanel

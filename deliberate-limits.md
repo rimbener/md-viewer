@@ -24,7 +24,7 @@ JavaScript, so `<View>` in a `tsx` fence gets no tag colour. A `${…}`
 interpolation is found by counting braces, so a `}` inside a string inside an
 interpolation closes it early.
 
-Gherkin remains the one fence that is not highlighted but *laid out*, and it
+Gherkin remains the one fence that is not highlighted but _laid out_, and it
 earns that by not being code: a `gherkin` fence is a document about behaviour,
 its grammar is a dozen keywords, and the payoff is a feature rather than tinted
 source.
@@ -74,7 +74,7 @@ delimiter matching in ambiguous cases such as `**a*b**`.
 ## Only one folder is remembered, and only the last one
 
 The last folder and file are remembered and reopened on the next launch. That
-stores a *path*, which is not the same as storing *permission*: the sandboxed
+stores a _path_, which is not the same as storing _permission_: the sandboxed
 build reaches a folder through the `NSOpenPanel` the person picked it with, and
 that grant dies with the process.
 
@@ -113,6 +113,15 @@ enough to read as live. There is no incremental parse: the debounce makes the
 work less frequent, not smaller, so a document of a few hundred thousand
 characters still types roughly. Past 500,000 characters the editor is disabled
 outright, because that document is already falling back to plain text.
+
+## The tree is walked three levels at a time
+
+A full recursive walk of a large project is expensive and can hang the UI.
+Each scan reads three directory levels. A deeper folder is read when you click
+it in the tree, and Reload walks the root again. The folder is not watched:
+files added or removed while the app is open do not appear by themselves. A
+watcher would keep the tree live, but it would also let the list jump while
+someone was reading it.
 
 ## No search and no export
 
