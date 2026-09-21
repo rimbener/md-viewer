@@ -1,22 +1,42 @@
 /**
- * Zoom levels for the document panel, kept apart from the control that drives
- * them so that storage code can validate a value without pulling in the UI.
+ * Zoom for the document panel, kept apart from the control that drives it so
+ * that storage code can validate a value without pulling in the UI.
  */
 
-/** Zoom factors the control steps through; 1 is the natural size. */
-export const ZOOM_LEVELS = [0.75, 0.9, 1, 1.15, 1.3, 1.5, 1.75, 2];
+export const MIN_ZOOM = 0.75;
+export const MAX_ZOOM = 2;
+export const ZOOM_STEP = 0.05;
 
+/** 1 is the natural size. */
 export const DEFAULT_ZOOM = 1;
 
-/** Nearest step in `ZOOM_LEVELS`, moved by `direction` steps. */
+const STEP_PERCENT = Math.round(ZOOM_STEP * 100);
+
+function asPercent(scale: number): number {
+  return Math.round(scale * 100);
+}
+
+/** Nearest step, moved by `direction` increments of 5%. */
 export function stepZoom(scale: number, direction: number): number {
-  const current = ZOOM_LEVELS.indexOf(scale);
-  const index = current === -1 ? ZOOM_LEVELS.indexOf(DEFAULT_ZOOM) : current;
-  const next = Math.min(Math.max(index + direction, 0), ZOOM_LEVELS.length - 1);
-  return ZOOM_LEVELS[next];
+  const current = isZoomLevel(scale)
+    ? asPercent(scale)
+    : asPercent(DEFAULT_ZOOM);
+  const next = Math.min(
+    Math.max(current + direction * STEP_PERCENT, asPercent(MIN_ZOOM)),
+    asPercent(MAX_ZOOM),
+  );
+  return next / 100;
 }
 
 /** Guards against values from an older build or a hand-edited store. */
 export function isZoomLevel(value: unknown): value is number {
-  return typeof value === 'number' && ZOOM_LEVELS.includes(value);
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return false;
+  }
+  const percent = asPercent(value);
+  return (
+    percent >= asPercent(MIN_ZOOM) &&
+    percent <= asPercent(MAX_ZOOM) &&
+    (percent - asPercent(MIN_ZOOM)) % STEP_PERCENT === 0
+  );
 }

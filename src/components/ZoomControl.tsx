@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useTheme } from '../theme';
-import { DEFAULT_ZOOM, ZOOM_LEVELS, stepZoom } from '../zoom';
+import { DEFAULT_ZOOM, MAX_ZOOM, MIN_ZOOM, stepZoom } from '../zoom';
 
 interface ZoomControlProps {
   scale: number;
@@ -11,15 +11,16 @@ interface ZoomControlProps {
 /** Zoom out / reset / zoom in, as one segmented group. */
 export function ZoomControl({ scale, onChange }: ZoomControlProps) {
   const theme = useTheme();
-  const canZoomOut = scale > ZOOM_LEVELS[0];
-  const canZoomIn = scale < ZOOM_LEVELS[ZOOM_LEVELS.length - 1];
+  const canZoomOut = scale > MIN_ZOOM;
+  const canZoomIn = scale < MAX_ZOOM;
 
   return (
     <View
       style={[
         styles.group,
         { borderColor: theme.border, backgroundColor: theme.background },
-      ]}>
+      ]}
+    >
       <Segment
         label="−"
         accessibilityLabel="Zoom out"
@@ -72,14 +73,16 @@ function Segment({
         styles.segment,
         wide && styles.wideSegment,
         pressed && { backgroundColor: theme.hairline },
-      ]}>
+      ]}
+    >
       <Text
         style={[
           styles.label,
           // The percentage stays legible at rest; the steppers grey out.
           { color: disabled && !wide ? theme.mutedText : theme.text },
           disabled && !wide && styles.disabledLabel,
-        ]}>
+        ]}
+      >
         {label}
       </Text>
     </Pressable>

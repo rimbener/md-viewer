@@ -33,7 +33,10 @@ describe('zoom persistence', () => {
     await expect(loadZoom()).resolves.toBeNull();
   });
 
-  it('rejects a stored value that is not a known zoom level', async () => {
+  it('rejects a stored value that is not a known zoom step', async () => {
+    await storage.setItem(KEY, '1.07');
+    await expect(loadZoom()).resolves.toBeNull();
+
     await storage.setItem(KEY, '3.7');
     await expect(loadZoom()).resolves.toBeNull();
 

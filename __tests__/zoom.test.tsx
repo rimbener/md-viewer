@@ -4,7 +4,7 @@ import ReactTestRenderer from 'react-test-renderer';
 
 import { Markdown } from '../src/components/Markdown';
 import { parseMarkdown } from '../src/markdown/parseBlocks';
-import { DEFAULT_ZOOM, ZOOM_LEVELS, stepZoom } from '../src/zoom';
+import { DEFAULT_ZOOM, MAX_ZOOM, MIN_ZOOM, stepZoom } from '../src/zoom';
 
 /**
  * Font size of the first `Text` rendered for `source` at a given zoom. The
@@ -27,20 +27,18 @@ function fontSizeAt(source: string, scale: number): number {
 }
 
 describe('stepZoom', () => {
-  it('moves one step at a time', () => {
-    expect(stepZoom(DEFAULT_ZOOM, 1)).toBe(1.15);
-    expect(stepZoom(DEFAULT_ZOOM, -1)).toBe(0.9);
+  it('moves five percent at a time', () => {
+    expect(stepZoom(DEFAULT_ZOOM, 1)).toBe(1.05);
+    expect(stepZoom(DEFAULT_ZOOM, -1)).toBe(0.95);
   });
 
   it('stops at both ends instead of wrapping', () => {
-    const smallest = ZOOM_LEVELS[0];
-    const largest = ZOOM_LEVELS[ZOOM_LEVELS.length - 1];
-    expect(stepZoom(smallest, -1)).toBe(smallest);
-    expect(stepZoom(largest, 1)).toBe(largest);
+    expect(stepZoom(MIN_ZOOM, -1)).toBe(MIN_ZOOM);
+    expect(stepZoom(MAX_ZOOM, 1)).toBe(MAX_ZOOM);
   });
 
   it('falls back to the default for an unknown scale', () => {
-    expect(stepZoom(1.07, 1)).toBe(1.15);
+    expect(stepZoom(1.07, 1)).toBe(1.05);
   });
 });
 
