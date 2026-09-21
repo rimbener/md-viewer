@@ -5,6 +5,7 @@
   "scripts": {
     "android": "react-native run-android --port 8200",
     "build:macos": "react-native build-macos --mode Debug",
+    "build:macos:release": "xcodebuild -workspace macos/MdViewer.xcworkspace -scheme MdViewer-macOS -configuration Release -derivedDataPath macos/build build",
     "ios": "react-native run-ios --port 8200",
     "lint": "eslint .",
     "macos": "react-native run-macos --port 8200",

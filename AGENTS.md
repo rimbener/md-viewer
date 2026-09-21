@@ -18,7 +18,7 @@ than a detail.
 npm start                       # Metro dev server
 npm run macos                   # build and run the macOS app (the primary target)
 npm run build:macos             # Debug build without launching
-xcodebuild -workspace macos/MdViewer.xcworkspace -scheme MdViewer-macOS -configuration Release build
+npm run build:macos:release     # Release build into macos/build/Build/Products/Release
 pod install --project-directory=macos   # after a fresh clone or a native dependency change
 
 npm test                        # jest, the whole suite
