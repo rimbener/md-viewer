@@ -1,6 +1,7 @@
 /**
- * Viewer preferences that outlive a launch: the zoom level, the sidebar and
- * editor visibility, and the folder and file that were open last.
+ * Viewer preferences that outlive a launch: the zoom level, the line length,
+ * the sidebar and editor visibility, and the folder and file that were open
+ * last.
  *
  * Storage is best-effort: a read that fails falls back to the default and a
  * write that fails is dropped, because losing a preference is never worth
@@ -9,10 +10,12 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import { isCharacterCount } from './column';
 import { isSchemeId } from './typography';
 import { isZoomLevel } from './zoom';
 
 const ZOOM_KEY = 'mdviewer.zoom';
+const CHARACTERS_KEY = 'mdviewer.characters';
 const FOLDER_KEY = 'mdviewer.lastFolder';
 const BOOKMARK_KEY = 'mdviewer.lastFolderBookmark';
 const FILE_KEY = 'mdviewer.lastFile';
@@ -55,6 +58,21 @@ export async function loadZoom(): Promise<number | null> {
 /** Records the zoom level for the next launch; failures are ignored. */
 export function saveZoom(scale: number): void {
   write(ZOOM_KEY, String(scale));
+}
+
+/** The stored line length, or null when there is no usable one. */
+export async function loadCharacters(): Promise<number | null> {
+  const stored = await read(CHARACTERS_KEY);
+  if (stored === null) {
+    return null;
+  }
+  const value = Number.parseFloat(stored);
+  return isCharacterCount(value) ? value : null;
+}
+
+/** Records the line length for the next launch; failures are ignored. */
+export function saveCharacters(characters: number): void {
+  write(CHARACTERS_KEY, String(characters));
 }
 
 /** The chosen font scheme, or null when there is no usable one. */

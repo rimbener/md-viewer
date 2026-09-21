@@ -1,11 +1,13 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import {
+  loadCharacters,
   loadFontScheme,
   loadLastFile,
   loadLastFolder,
   loadSidebarVisible,
   loadZoom,
+  saveCharacters,
   saveFontScheme,
   saveLastFile,
   saveLastFolder,
@@ -52,6 +54,33 @@ describe('zoom persistence', () => {
   it('survives a storage failure on write', async () => {
     storage.setItem.mockRejectedValueOnce(new Error('disk is on fire'));
     expect(() => saveZoom(2)).not.toThrow();
+  });
+});
+
+describe('line length persistence', () => {
+  const key = 'mdviewer.characters';
+
+  it('round-trips a character count', async () => {
+    saveCharacters(80);
+    expect(storage.setItem).toHaveBeenCalledWith(key, '80');
+    await expect(loadCharacters()).resolves.toBe(80);
+  });
+
+  it('returns null when nothing has been stored', async () => {
+    await expect(loadCharacters()).resolves.toBeNull();
+  });
+
+  it('rejects a stored value that is not a known step', async () => {
+    await storage.setItem(key, '97');
+    await expect(loadCharacters()).resolves.toBeNull();
+
+    await storage.setItem(key, 'huge');
+    await expect(loadCharacters()).resolves.toBeNull();
+  });
+
+  it('survives a storage failure on read', async () => {
+    storage.getItem.mockRejectedValueOnce(new Error('disk is on fire'));
+    await expect(loadCharacters()).resolves.toBeNull();
   });
 });
 

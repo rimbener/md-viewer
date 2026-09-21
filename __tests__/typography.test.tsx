@@ -3,6 +3,7 @@ import { StyleSheet, Text } from 'react-native';
 import ReactTestRenderer from 'react-test-renderer';
 
 import { Markdown } from '../src/components/Markdown';
+import { DEFAULT_CHARACTERS } from '../src/column';
 import { parseMarkdown } from '../src/markdown/parseBlocks';
 import {
   columnWidth,
@@ -101,28 +102,42 @@ describe('columnWidth', () => {
   it('gives every scheme the same line length in characters', () => {
     const widths = FONT_SCHEMES.map(scheme => {
       const bodySize = 14 * scheme.body.scale;
-      return columnWidth(scheme, 1) / (scheme.body.advance * bodySize);
+      return (
+        columnWidth(scheme, 1, DEFAULT_CHARACTERS) /
+        (scheme.body.advance * bodySize)
+      );
     });
     // Each is the same target character count, give or take pixel rounding.
     for (const characters of widths) {
       expect(characters).toBeCloseTo(widths[0], 0);
     }
-    expect(widths[0]).toBeGreaterThan(60);
-    expect(widths[0]).toBeLessThan(90);
+    expect(widths[0]).toBeCloseTo(DEFAULT_CHARACTERS, 0);
   });
 
   it('grows with zoom so the line length does not shrink', () => {
     const scheme = schemeById(DEFAULT_SCHEME_ID);
-    const doubled = columnWidth(scheme, 1) * 2;
-    expect(columnWidth(scheme, 2)).toBeGreaterThan(doubled - 2);
-    expect(columnWidth(scheme, 2)).toBeLessThan(doubled + 2);
+    const doubled = columnWidth(scheme, 1, DEFAULT_CHARACTERS) * 2;
+    expect(columnWidth(scheme, 2, DEFAULT_CHARACTERS)).toBeGreaterThan(
+      doubled - 2,
+    );
+    expect(columnWidth(scheme, 2, DEFAULT_CHARACTERS)).toBeLessThan(
+      doubled + 2,
+    );
+  });
+
+  it('grows with the target character count', () => {
+    const scheme = schemeById(DEFAULT_SCHEME_ID);
+    const atDefault = columnWidth(scheme, 1, DEFAULT_CHARACTERS);
+    const atHalf = columnWidth(scheme, 1, DEFAULT_CHARACTERS / 2);
+    expect(atDefault).toBeGreaterThan(atHalf * 2 - 2);
+    expect(atDefault).toBeLessThan(atHalf * 2 + 2);
   });
 
   it('lands in a sensible pixel range at natural size', () => {
     for (const scheme of FONT_SCHEMES) {
-      const width = columnWidth(scheme, 1);
-      expect(width).toBeGreaterThan(400);
-      expect(width).toBeLessThan(600);
+      const width = columnWidth(scheme, 1, DEFAULT_CHARACTERS);
+      expect(width).toBeGreaterThan(500);
+      expect(width).toBeLessThan(700);
     }
   });
 });

@@ -1,3 +1,5 @@
+import { DEFAULT_CHARACTERS } from './column';
+
 /**
  * Font schemes for the document panel.
  *
@@ -47,20 +49,18 @@ const CODE: FontRole = { family: 'Menlo', scale: 1, advance: 0.6021 };
 export const BODY_SIZE = 14;
 
 /**
- * Target line length, in characters. Prose is most comfortable between 45 and
- * 75; the upper end suits technical writing, whose lines carry identifiers and
- * code spans that read badly when broken across lines.
+ * Width of the text column for a scheme at a given zoom and line length.
+ * Because it is derived from the body font's own measurements, every scheme
+ * yields the same number of characters per line rather than the same number
+ * of pixels.
  */
-const TARGET_CHARACTERS = 90;
-
-/**
- * Width of the text column for a scheme at a given zoom. Because it is derived
- * from the body font's own measurements, every scheme yields the same number
- * of characters per line rather than the same number of pixels.
- */
-export function columnWidth(scheme: FontScheme, zoom: number): number {
+export function columnWidth(
+  scheme: FontScheme,
+  zoom: number,
+  characters: number = DEFAULT_CHARACTERS,
+): number {
   const bodySize = BODY_SIZE * zoom * scheme.body.scale;
-  return Math.round(TARGET_CHARACTERS * scheme.body.advance * bodySize);
+  return Math.round(characters * scheme.body.advance * bodySize);
 }
 
 export const FONT_SCHEMES: readonly FontScheme[] = [

@@ -1,12 +1,21 @@
 import { readFile } from '@dr.pogodin/react-native-fs';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 
+import { DEFAULT_CHARACTERS } from '../column';
 import { parseMarkdown } from '../markdown/parseBlocks';
 import {
+  loadCharacters,
   loadEditorVisible,
   loadFontScheme,
   loadZoom,
+  saveCharacters,
   saveEditorVisible,
   saveFontScheme,
   saveZoom,
@@ -15,6 +24,7 @@ import { useTheme } from '../theme';
 import type { FileNode } from '../types';
 import { columnWidth, DEFAULT_SCHEME_ID, schemeById } from '../typography';
 import { DEFAULT_ZOOM } from '../zoom';
+import { ColumnControl } from './ColumnControl';
 import { Editor } from './Editor';
 import { EditorToggle } from './EditorToggle';
 import { FontControl } from './FontControl';
@@ -63,13 +73,15 @@ export function DocumentPanel({
   const drafts = useRef(new Map<string, string>());
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // Zoom is a property of the reader rather than of the document: it survives
-  // switching files, and is restored on the next launch.
+  // Zoom and line length are properties of the reader rather than of the
+  // document: they survive switching files, and are restored on the next launch.
   const [scale, setScale] = useState(DEFAULT_ZOOM);
+  const [characters, setCharacters] = useState(DEFAULT_CHARACTERS);
   const [schemeId, setSchemeId] = useState(DEFAULT_SCHEME_ID);
   // Reading is the common case, so the editor stays closed until asked for.
   const [isEditorVisible, setIsEditorVisible] = useState(false);
   const hasChosenZoom = useRef(false);
+  const hasChosenCharacters = useRef(false);
   const hasChosenScheme = useRef(false);
   const hasChosenEditor = useRef(false);
 
@@ -80,6 +92,12 @@ export function DocumentPanel({
       // Someone who zoomed while the read was in flight outranks the store.
       if (!cancelled && stored !== null && !hasChosenZoom.current) {
         setScale(stored);
+      }
+    });
+
+    loadCharacters().then(stored => {
+      if (!cancelled && stored !== null && !hasChosenCharacters.current) {
+        setCharacters(stored);
       }
     });
 
@@ -104,6 +122,12 @@ export function DocumentPanel({
     hasChosenZoom.current = true;
     setScale(next);
     saveZoom(next);
+  }, []);
+
+  const changeCharacters = useCallback((next: number) => {
+    hasChosenCharacters.current = true;
+    setCharacters(next);
+    saveCharacters(next);
   }, []);
 
   const changeScheme = useCallback((next: string) => {
@@ -216,10 +240,10 @@ export function DocumentPanel({
 
   // Prose is read most comfortably at a bounded line length, so the column is
   // capped and centred rather than filling however wide the window happens to
-  // be. The cap tracks the zoom, keeping the characters per line constant.
+  // be. The cap tracks zoom and the chosen character count.
   const maxWidth = useMemo(
-    () => columnWidth(schemeById(schemeId), scale),
-    [schemeId, scale],
+    () => columnWidth(schemeById(schemeId), scale, characters),
+    [schemeId, scale, characters],
   );
 
   const basePath = useMemo(
@@ -257,7 +281,8 @@ export function DocumentPanel({
     <ScrollView
       key={file.path}
       style={styles.body}
-      contentContainerStyle={styles.content}>
+      contentContainerStyle={styles.content}
+    >
       {isTruncated ? (
         <Text style={[styles.message, { color: theme.mutedText }]}>
           This file is too large to render; showing it as plain text.
@@ -273,7 +298,8 @@ export function DocumentPanel({
               fontSize: 12.5 * scale,
               lineHeight: 18 * scale,
             },
-          ]}>
+          ]}
+        >
           {rendered}
         </Text>
       ) : (
@@ -292,7 +318,10 @@ export function DocumentPanel({
   return (
     <View style={styles.container}>
       <View style={[styles.header, { borderBottomColor: theme.border }]}>
-        <SidebarToggle isVisible={isSidebarVisible} onToggle={onToggleSidebar} />
+        <SidebarToggle
+          isVisible={isSidebarVisible}
+          onToggle={onToggleSidebar}
+        />
         <EditorToggle
           isVisible={isEditorVisible}
           disabled={!canEdit}
@@ -301,17 +330,20 @@ export function DocumentPanel({
         <View style={styles.title}>
           <Text
             style={[styles.fileName, { color: theme.text }]}
-            numberOfLines={1}>
+            numberOfLines={1}
+          >
             {file.name}
           </Text>
           <Text
             style={[styles.filePath, { color: theme.mutedText }]}
-            numberOfLines={1}>
+            numberOfLines={1}
+          >
             {/* Edits live in memory only, which is worth saying out loud. */}
             {draft === null ? file.path : `${file.path} — edited, not saved`}
           </Text>
         </View>
         <FontControl schemeId={schemeId} onChange={changeScheme} />
+        <ColumnControl characters={characters} onChange={changeCharacters} />
         <ZoomControl scale={scale} onChange={changeZoom} />
       </View>
 
@@ -328,7 +360,9 @@ export function DocumentPanel({
       ) : isEditorVisible && canEdit ? (
         <View style={styles.split}>
           <Editor value={text ?? ''} scale={scale} onChange={edit} />
-          <View style={[styles.splitBorder, { backgroundColor: theme.border }]} />
+          <View
+            style={[styles.splitBorder, { backgroundColor: theme.border }]}
+          />
           <View style={styles.preview}>{document}</View>
         </View>
       ) : (
