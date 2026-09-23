@@ -90,6 +90,13 @@ bookmark no longer resolves — the folder was deleted, or the grant was revoked
 the degradation is graceful: the app falls back to the folder dialog exactly as
 it would on a first run.
 
+## Back and Next are navigation, not undo
+
+The buttons move through files you opened in the current folder. They do not
+undo typing. Opening a file after you went back drops the files that were
+ahead, as a browser does. The list stops at 100 files. Only the 20 folders
+opened most recently keep a list, so the store stays bounded.
+
 ## Edits are never written to disk
 
 The source editor changes what the viewer renders, not the file. A document's
@@ -97,6 +104,9 @@ buffer is kept for as long as the app is running, so switching to another file
 and back does not lose it, but quitting does and there is no save, no undo
 history beyond the text field's own, and no prompt on the way out. The header
 says `edited, not saved` whenever a buffer has diverged from disk.
+
+If the file changes on disk under that buffer, the header adds `file changed
+on disk` and the typed text is kept. Disk does not overwrite a session edit.
 
 Writing is the obvious next step, and it is a larger change than it looks: it
 needs a save command, a decision about what to do when the file has changed
@@ -118,12 +128,20 @@ outright, because that document is already falling back to plain text.
 
 A full recursive walk of a large project is expensive and can hang the UI.
 Each scan reads three directory levels. A deeper folder is read when you click
-it in the tree, and Reload walks the root again. The folder is not watched:
+it in the tree, and Reload walks the root again. The tree is not watched:
 files added or removed while the app is open do not appear by themselves. A
 watcher would keep the tree live, but it would also let the list jump while
-someone was reading it.
+someone was reading it. The open file is watched on its own, and that does not
+rebuild the list.
 
-## No search and no export
+## Find marks one text run at a time
 
-The viewer displays what is on disk, and now what you have typed over it, and
-nothing more.
+A hit has to sit inside one run of text: a word, a code token, a step. The
+search does not join a bold word to the plain word beside it, so a match
+cannot start in one run and end in the next. It marks at most 500 hits, then
+stops. The source editor is not marked. The preview beside the editor is.
+
+## No export
+
+The viewer does not write the document out as a PDF, as HTML, or as any other
+file. It only shows the document.

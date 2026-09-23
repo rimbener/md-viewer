@@ -6,10 +6,12 @@
     "android": "react-native run-android --port 8200",
     "build:macos": "react-native build-macos --mode Debug",
     "build:macos:release": "xcodebuild -workspace macos/MdViewer.xcworkspace -scheme MdViewer-macOS -configuration Release -derivedDataPath macos/build build",
+    "install:macos": "ditto macos/build/Build/Products/Release/MdViewer.app /Applications/MdViewer.app",
     "ios": "react-native run-ios --port 8200",
     "lint": "eslint .",
     "macos": "react-native run-macos --port 8200",
     "start": "react-native start --port 8200",
+    "stop:macos": "killall MdViewer || true",
     "test": "jest"
   },
   "dependencies": {

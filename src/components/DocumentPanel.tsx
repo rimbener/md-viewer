@@ -9,6 +9,8 @@ import {
 } from 'react-native';
 
 import { DEFAULT_CHARACTERS } from '../column';
+import { FindProvider, useShowText } from '../find';
+import { watchFile } from '../folderAccess';
 import { parseMarkdown } from '../markdown/parseBlocks';
 import {
   loadCharacters,
@@ -25,9 +27,11 @@ import type { FileNode } from '../types';
 import { columnWidth, DEFAULT_SCHEME_ID, schemeById } from '../typography';
 import { DEFAULT_ZOOM } from '../zoom';
 import { ColumnControl } from './ColumnControl';
+import { DocumentSearch } from './DocumentSearch';
 import { Editor } from './Editor';
 import { EditorToggle } from './EditorToggle';
 import { FontControl } from './FontControl';
+import { HistoryNav } from './HistoryNav';
 import { Markdown } from './Markdown';
 import { SidebarToggle } from './SidebarToggle';
 import { ZoomControl } from './ZoomControl';
@@ -48,6 +52,10 @@ interface DocumentPanelProps {
   file: FileNode | null;
   isSidebarVisible: boolean;
   onToggleSidebar: () => void;
+  canGoBack: boolean;
+  canGoNext: boolean;
+  onBack: () => void;
+  onNext: () => void;
 }
 
 /** Reads the selected file and renders it as markdown. */
@@ -55,6 +63,10 @@ export function DocumentPanel({
   file,
   isSidebarVisible,
   onToggleSidebar,
+  canGoBack,
+  canGoNext,
+  onBack,
+  onNext,
 }: DocumentPanelProps) {
   const theme = useTheme();
   const [source, setSource] = useState<string | null>(null);
@@ -66,17 +78,27 @@ export function DocumentPanel({
    */
   const [settledDraft, setSettledDraft] = useState<string | null>(null);
   const reparse = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reread = useRef<ReturnType<typeof setTimeout> | null>(null);
   /**
    * Edits for every file touched this session. Nothing is written to disk, so
    * without this a glance at another document would throw the work away.
    */
   const drafts = useRef(new Map<string, string>());
+  const sourceRef = useRef<string | null>(null);
+  const draftRef = useRef<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [diskChanged, setDiskChanged] = useState(false);
   // Zoom and line length are properties of the reader rather than of the
   // document: they survive switching files, and are restored on the next launch.
   const [scale, setScale] = useState(DEFAULT_ZOOM);
   const [characters, setCharacters] = useState(DEFAULT_CHARACTERS);
+  const [query, setQuery] = useState('');
+  const [active, setActive] = useState(0);
+  const [matchCount, setMatchCount] = useState(0);
+  const [capped, setCapped] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
+  const contentRef = useRef<View>(null);
   const [schemeId, setSchemeId] = useState(DEFAULT_SCHEME_ID);
   // Reading is the common case, so the editor stays closed until asked for.
   const [isEditorVisible, setIsEditorVisible] = useState(false);
@@ -130,6 +152,20 @@ export function DocumentPanel({
     saveCharacters(next);
   }, []);
 
+  const changeQuery = useCallback((next: string) => {
+    setQuery(next);
+    setActive(0);
+  }, []);
+
+  const handleCount = useCallback((count: number, isCapped: boolean) => {
+    setMatchCount(prev => (prev === count ? prev : count));
+    setCapped(prev => (prev === isCapped ? prev : isCapped));
+    setActive(prev => {
+      const next = count === 0 ? 0 : Math.min(prev, count - 1);
+      return next === prev ? prev : next;
+    });
+  }, []);
+
   const changeScheme = useCallback((next: string) => {
     hasChosenScheme.current = true;
     setSchemeId(next);
@@ -145,6 +181,8 @@ export function DocumentPanel({
   }, [isEditorVisible]);
 
   const path = file?.path ?? null;
+  sourceRef.current = source;
+  draftRef.current = draft;
 
   useEffect(() => {
     // A pending reparse belongs to the file being left, not to the new one.
@@ -152,12 +190,22 @@ export function DocumentPanel({
       clearTimeout(reparse.current);
       reparse.current = null;
     }
+    if (reread.current !== null) {
+      clearTimeout(reread.current);
+      reread.current = null;
+    }
+
+    setQuery('');
+    setActive(0);
+    setMatchCount(0);
+    setCapped(false);
 
     if (path === null) {
       setSource(null);
       setDraft(null);
       setSettledDraft(null);
       setError(null);
+      setDiskChanged(false);
       return;
     }
 
@@ -165,33 +213,66 @@ export function DocumentPanel({
     const stored = drafts.current.get(path) ?? null;
     setDraft(stored);
     setSettledDraft(stored);
+    draftRef.current = stored;
+    setDiskChanged(false);
 
     let cancelled = false;
-    setIsLoading(true);
-    setError(null);
+    let ticket = 0;
 
-    readFile(path, 'utf8')
-      .then(contents => {
-        if (!cancelled) {
+    const issue = (isReload: boolean) => {
+      const t = ++ticket;
+      if (!isReload) {
+        setIsLoading(true);
+        setError(null);
+      }
+      readFile(path, 'utf8')
+        .then(contents => {
+          if (cancelled || t !== ticket) {
+            return;
+          }
+          if (isReload && contents === sourceRef.current) {
+            return;
+          }
           setSource(contents);
-        }
-      })
-      .catch((cause: unknown) => {
-        if (!cancelled) {
+          if (isReload && draftRef.current !== null) {
+            setDiskChanged(true);
+          }
+        })
+        .catch((cause: unknown) => {
+          if (cancelled || t !== ticket || isReload) {
+            return;
+          }
           setSource(null);
           setError(
             cause instanceof Error ? cause.message : 'Could not read the file.',
           );
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setIsLoading(false);
-        }
-      });
+        })
+        .finally(() => {
+          if (!cancelled && t === ticket && !isReload) {
+            setIsLoading(false);
+          }
+        });
+    };
+
+    issue(false);
+
+    const stop = watchFile(path, () => {
+      if (reread.current !== null) {
+        clearTimeout(reread.current);
+      }
+      reread.current = setTimeout(() => {
+        reread.current = null;
+        issue(true);
+      }, REPARSE_DELAY_MS);
+    });
 
     return () => {
       cancelled = true;
+      stop();
+      if (reread.current !== null) {
+        clearTimeout(reread.current);
+        reread.current = null;
+      }
     };
   }, [path]);
 
@@ -217,6 +298,9 @@ export function DocumentPanel({
     () => () => {
       if (reparse.current !== null) {
         clearTimeout(reparse.current);
+      }
+      if (reread.current !== null) {
+        clearTimeout(reread.current);
       }
     },
     [],
@@ -251,6 +335,15 @@ export function DocumentPanel({
     [path],
   );
 
+  const historyNav = (
+    <HistoryNav
+      canGoBack={canGoBack}
+      canGoNext={canGoNext}
+      onBack={onBack}
+      onNext={onNext}
+    />
+  );
+
   if (file === null) {
     return (
       <View style={styles.container}>
@@ -259,6 +352,7 @@ export function DocumentPanel({
             isVisible={isSidebarVisible}
             onToggle={onToggleSidebar}
           />
+          {historyNav}
           <View style={styles.title} />
         </View>
         <View style={[styles.body, styles.centered]}>
@@ -278,40 +372,27 @@ export function DocumentPanel({
 
   const document = (
     // Keying on the path resets the scroll position for each document.
-    <ScrollView
-      key={file.path}
-      style={styles.body}
-      contentContainerStyle={styles.content}
-    >
-      {isTruncated ? (
-        <Text style={[styles.message, { color: theme.mutedText }]}>
-          This file is too large to render; showing it as plain text.
-        </Text>
-      ) : null}
-      {isTruncated ? (
-        <Text
-          selectable
-          style={[
-            styles.plainText,
-            {
-              color: theme.text,
-              fontSize: 12.5 * scale,
-              lineHeight: 18 * scale,
-            },
-          ]}
-        >
-          {rendered}
-        </Text>
-      ) : (
-        <View style={[styles.column, { maxWidth }]}>
-          <Markdown
-            blocks={blocks}
-            basePath={basePath}
-            scale={scale}
-            schemeId={schemeId}
-          />
-        </View>
-      )}
+    <ScrollView key={file.path} ref={scrollRef} style={styles.body}>
+      {/* Left in the native tree so a match can measure its position against it. */}
+      <View ref={contentRef} collapsable={false} style={styles.content}>
+        {isTruncated ? (
+          <Text style={[styles.message, { color: theme.mutedText }]}>
+            This file is too large to render; showing it as plain text.
+          </Text>
+        ) : null}
+        {isTruncated ? (
+          <PlainBody text={rendered ?? ''} scale={scale} />
+        ) : (
+          <View style={[styles.column, { maxWidth }]}>
+            <Markdown
+              blocks={blocks}
+              basePath={basePath}
+              scale={scale}
+              schemeId={schemeId}
+            />
+          </View>
+        )}
+      </View>
     </ScrollView>
   );
 
@@ -322,6 +403,7 @@ export function DocumentPanel({
           isVisible={isSidebarVisible}
           onToggle={onToggleSidebar}
         />
+        {historyNav}
         <EditorToggle
           isVisible={isEditorVisible}
           disabled={!canEdit}
@@ -339,36 +421,83 @@ export function DocumentPanel({
             numberOfLines={1}
           >
             {/* Edits live in memory only, which is worth saying out loud. */}
-            {draft === null ? file.path : `${file.path} — edited, not saved`}
+            {draft === null
+              ? file.path
+              : diskChanged
+              ? `${file.path} — edited, not saved — file changed on disk`
+              : `${file.path} — edited, not saved`}
           </Text>
         </View>
         <FontControl schemeId={schemeId} onChange={changeScheme} />
         <ColumnControl characters={characters} onChange={changeCharacters} />
         <ZoomControl scale={scale} onChange={changeZoom} />
+        <DocumentSearch
+          query={query}
+          count={matchCount}
+          active={active}
+          capped={capped}
+          onQuery={changeQuery}
+          onActive={setActive}
+        />
       </View>
 
-      {isLoading ? (
-        <View style={[styles.body, styles.centered]}>
-          <ActivityIndicator />
-        </View>
-      ) : error !== null ? (
-        <View style={[styles.body, styles.centered]}>
-          <Text style={[styles.message, { color: theme.mutedText }]}>
-            {error}
-          </Text>
-        </View>
-      ) : isEditorVisible && canEdit ? (
-        <View style={styles.split}>
-          <Editor value={text ?? ''} scale={scale} onChange={edit} />
-          <View
-            style={[styles.splitBorder, { backgroundColor: theme.border }]}
-          />
-          <View style={styles.preview}>{document}</View>
-        </View>
-      ) : (
-        document
-      )}
+      <FindProvider
+        query={query}
+        active={active}
+        contentRef={contentRef}
+        scrollRef={scrollRef}
+        onCount={handleCount}
+      >
+        {isLoading ? (
+          <View style={[styles.body, styles.centered]}>
+            <ActivityIndicator />
+          </View>
+        ) : error !== null ? (
+          <View style={[styles.body, styles.centered]}>
+            <Text style={[styles.message, { color: theme.mutedText }]}>
+              {error}
+            </Text>
+          </View>
+        ) : isEditorVisible && canEdit ? (
+          <View style={styles.split}>
+            <Editor value={text ?? ''} scale={scale} onChange={edit} />
+            <View
+              style={[styles.splitBorder, { backgroundColor: theme.border }]}
+            />
+            <View style={styles.preview}>{document}</View>
+          </View>
+        ) : (
+          document
+        )}
+      </FindProvider>
     </View>
+  );
+}
+
+type PlainBodyProps = {
+  text: string;
+  scale: number;
+};
+
+/** The plain-text fallback, marked by the same find pass as the preview. */
+function PlainBody({ text, scale }: PlainBodyProps) {
+  const theme = useTheme();
+  const show = useShowText();
+
+  return (
+    <Text
+      selectable
+      style={[
+        styles.plainText,
+        {
+          color: theme.text,
+          fontSize: 12.5 * scale,
+          lineHeight: 18 * scale,
+        },
+      ]}
+    >
+      {show(text)}
+    </Text>
   );
 }
 

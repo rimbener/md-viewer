@@ -82,12 +82,22 @@ function toggleOf(tree: ReactTestRenderer.ReactTestRenderer) {
 }
 
 function editorOf(tree: ReactTestRenderer.ReactTestRenderer) {
-  const [input] = tree.root.findAllByType(TextInput);
+  const [input] = tree.root.findAll(
+    node =>
+      node.type === TextInput &&
+      node.props.accessibilityLabel === 'Markdown source',
+  );
   return input;
 }
 
 function hasEditor(tree: ReactTestRenderer.ReactTestRenderer): boolean {
-  return tree.root.findAllByType(TextInput).length > 0;
+  return (
+    tree.root.findAll(
+      node =>
+        node.type === TextInput &&
+        node.props.accessibilityLabel === 'Markdown source',
+    ).length > 0
+  );
 }
 
 /**
@@ -125,9 +135,7 @@ function shows(
   return renderedText(tree).includes(text);
 }
 
-async function press(
-  node: ReactTestRenderer.ReactTestInstance,
-): Promise<void> {
+async function press(node: ReactTestRenderer.ReactTestInstance): Promise<void> {
   await ReactTestRenderer.act(async () => {
     node.props.onPress();
   });

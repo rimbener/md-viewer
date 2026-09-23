@@ -11,6 +11,7 @@
 import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { useShowText } from '../find';
 import type { GherkinNode, GherkinSection, GherkinSpan } from '../gherkin';
 import { useTheme, type Theme } from '../theme';
 import { BODY_SIZE, type FontScheme } from '../typography';
@@ -206,6 +207,7 @@ interface NodeProps {
 
 function NodeView({ node, styles, theme }: NodeProps) {
   const { sheet } = styles;
+  const show = useShowText();
 
   switch (node.kind) {
     case 'section':
@@ -218,7 +220,7 @@ function NodeView({ node, styles, theme }: NodeProps) {
             selectable
             style={[sheet.stepKeyword, { color: theme.gherkinKeyword }]}
           >
-            {node.keyword}
+            {show(node.keyword)}
           </Text>
           <Text selectable style={[sheet.body, { color: theme.text }]}>
             <Spans spans={node.spans} styles={styles} theme={theme} />
@@ -241,7 +243,7 @@ function NodeView({ node, styles, theme }: NodeProps) {
               selectable
               style={[sheet.docStringText, { color: theme.mutedText }]}
             >
-              {node.text}
+              {show(node.text)}
             </Text>
           </View>
         </View>
@@ -250,14 +252,14 @@ function NodeView({ node, styles, theme }: NodeProps) {
     case 'comment':
       return (
         <Text selectable style={[sheet.comment, { color: theme.mutedText }]}>
-          {node.text}
+          {show(node.text)}
         </Text>
       );
 
     case 'description':
       return (
         <Text selectable style={[sheet.body, { color: theme.mutedText }]}>
-          {node.text}
+          {show(node.text)}
         </Text>
       );
   }
@@ -271,6 +273,7 @@ interface SectionProps {
 
 function SectionView({ section, styles, theme }: SectionProps) {
   const { sheet, stepGap } = styles;
+  const show = useShowText();
 
   switch (section.rank) {
     case 0:
@@ -281,10 +284,10 @@ function SectionView({ section, styles, theme }: SectionProps) {
             selectable
             style={[sheet.featureLabel, { color: theme.accent }]}
           >
-            {section.keyword.toUpperCase()}
+            {show(section.keyword.toUpperCase())}
           </Text>
           <Text selectable style={[sheet.featureName, { color: theme.text }]}>
-            {section.name}
+            {show(section.name)}
           </Text>
           <View style={{ gap: stepGap * 2, marginTop: stepGap }}>
             <Nodes nodes={section.children} styles={styles} theme={theme} />
@@ -297,7 +300,7 @@ function SectionView({ section, styles, theme }: SectionProps) {
         <View style={{ gap: stepGap }}>
           <Tags tags={section.tags} styles={styles} theme={theme} />
           <Text selectable style={[sheet.ruleName, { color: theme.text }]}>
-            {section.keyword}: {section.name}
+            {show(`${section.keyword}: ${section.name}`)}
           </Text>
           <View
             style={[
@@ -324,8 +327,10 @@ function SectionView({ section, styles, theme }: SectionProps) {
         >
           <Tags tags={section.tags} styles={styles} theme={theme} />
           <Text selectable style={[sheet.scenarioName, { color: theme.text }]}>
-            <Text style={{ color: theme.mutedText }}>{section.keyword}: </Text>
-            {section.name}
+            <Text style={{ color: theme.mutedText }}>
+              {show(`${section.keyword}: `)}
+            </Text>
+            {show(section.name)}
           </Text>
           <View style={{ gap: stepGap, marginTop: stepGap / 2 }}>
             <Nodes nodes={section.children} styles={styles} theme={theme} />
@@ -341,8 +346,8 @@ function SectionView({ section, styles, theme }: SectionProps) {
             selectable
             style={[sheet.examplesLabel, { color: theme.mutedText }]}
           >
-            {section.keyword.toUpperCase()}
-            {section.name.length > 0 ? ` — ${section.name}` : ''}
+            {show(section.keyword.toUpperCase())}
+            {section.name.length > 0 ? show(` — ${section.name}`) : ''}
           </Text>
           <View style={{ gap: stepGap }}>
             <Nodes nodes={section.children} styles={styles} theme={theme} />
@@ -359,6 +364,7 @@ interface TagsProps {
 }
 
 function Tags({ tags, styles, theme }: TagsProps) {
+  const show = useShowText();
   if (tags.length === 0) {
     return null;
   }
@@ -373,7 +379,7 @@ function Tags({ tags, styles, theme }: TagsProps) {
             { color: theme.gherkinTag, borderColor: theme.gherkinTag },
           ]}
         >
-          {tag}
+          {show(tag)}
         </Text>
       ))}
     </View>
@@ -454,20 +460,21 @@ interface SpansProps {
 
 function Spans({ spans, styles, theme }: SpansProps) {
   const { sheet } = styles;
+  const show = useShowText();
 
   return (
     <>
       {spans.map((span, index) => {
         switch (span.kind) {
           case 'text':
-            return span.text;
+            return show(span.text, index);
           case 'parameter':
             return (
               <Text
                 key={index}
                 style={[sheet.slot, { color: theme.gherkinParameter }]}
               >
-                {span.text}
+                {show(span.text)}
               </Text>
             );
           case 'string':
@@ -476,7 +483,7 @@ function Spans({ spans, styles, theme }: SpansProps) {
                 key={index}
                 style={[sheet.slot, { color: theme.gherkinString }]}
               >
-                {span.text}
+                {show(span.text)}
               </Text>
             );
         }

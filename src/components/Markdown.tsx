@@ -19,6 +19,7 @@ import {
   type TextStyle,
 } from 'react-native';
 
+import { useShowText } from '../find';
 import { isGherkin, parseGherkin } from '../gherkin';
 import { highlight, languageOf, type TokenKind } from '../highlight';
 import { resolveUri } from '../markdown/resolveUri';
@@ -411,6 +412,7 @@ function CodeText({
 }) {
   const theme = useTheme();
   const { sheet } = useStyles();
+  const show = useShowText();
   const tokens = useMemo(() => {
     const known = languageOf(language);
     return known === null ? null : highlight(text, known);
@@ -419,16 +421,16 @@ function CodeText({
   return (
     <Text selectable style={[sheet.codeText, { color: theme.text }]}>
       {tokens === null
-        ? text
+        ? show(text)
         : tokens.map((token, index) =>
             token.kind === 'text' ? (
-              token.text
+              show(token.text, index)
             ) : (
               <Text
                 key={index}
                 style={{ color: theme[TOKEN_COLOR[token.kind]] }}
               >
-                {token.text}
+                {show(token.text)}
               </Text>
             ),
           )}
@@ -507,13 +509,14 @@ interface InlineProps {
 function Inline({ nodes, color }: InlineProps) {
   const theme = useTheme();
   const { sheet } = useStyles();
+  const show = useShowText();
 
   return (
     <>
       {nodes.map((node, index) => {
         switch (node.kind) {
           case 'text':
-            return node.text;
+            return show(node.text, index);
 
           case 'strong':
             return (
@@ -542,10 +545,10 @@ function Inline({ nodes, color }: InlineProps) {
                 key={index}
                 style={[
                   sheet.inlineCode,
-                  { backgroundColor: theme.code, color: theme.text },
+                  { backgroundColor: theme.code, color: theme.inlineCode },
                 ]}
               >
-                {node.text}
+                {show(node.text)}
               </Text>
             );
 
@@ -567,7 +570,7 @@ function Inline({ nodes, color }: InlineProps) {
                 key={index}
                 style={[sheet.emphasis, { color: theme.mutedText }]}
               >
-                {node.alt}
+                {show(node.alt)}
               </Text>
             );
         }
@@ -585,6 +588,7 @@ interface MarkdownImageProps {
 function MarkdownImage({ node, basePath, spacing }: MarkdownImageProps) {
   const theme = useTheme();
   const { sheet } = useStyles();
+  const show = useShowText();
   const uri = useMemo(
     () => resolveUri(node.src, basePath),
     [node.src, basePath],
@@ -628,7 +632,7 @@ function MarkdownImage({ node, basePath, spacing }: MarkdownImageProps) {
           { color: theme.mutedText, marginBottom: spacing },
         ]}
       >
-        {failed ? `⚠︎ ${node.alt || node.src}` : node.alt}
+        {show(failed ? `⚠︎ ${node.alt || node.src}` : node.alt)}
       </Text>
     );
   }

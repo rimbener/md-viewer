@@ -12,6 +12,8 @@ export interface Theme {
   accent: string;
   /** Backdrop for code spans and fenced code blocks. */
   code: string;
+  /** Text of a `code` span. */
+  inlineCode: string;
   codeBorder: string;
   link: string;
   /** The rule running down the left of a blockquote. */
@@ -39,6 +41,10 @@ export interface Theme {
   syntaxAttribute: string;
   /** Code: a name being called. */
   syntaxFunction: string;
+  /** Find: a hit that is not the current one. */
+  searchHit: string;
+  /** Find: the current hit. */
+  searchCurrent: string;
 }
 
 const light: Theme = {
@@ -52,6 +58,7 @@ const light: Theme = {
   hairline: '#d8d8dc',
   accent: '#0a66d0',
   code: '#f2f2f4',
+  inlineCode: '#d39039',
   codeBorder: '#e0e0e2',
   link: '#0a66d0',
   quoteBar: '#d0d0d4',
@@ -67,6 +74,8 @@ const light: Theme = {
   syntaxTag: '#116329',
   syntaxAttribute: '#0550ae',
   syntaxFunction: '#8250df',
+  searchHit: '#ffe08a',
+  searchCurrent: '#f5a524',
 };
 
 const dark: Theme = {
@@ -80,6 +89,7 @@ const dark: Theme = {
   hairline: '#37373a',
   accent: '#69a8f5',
   code: '#2a2a2e',
+  inlineCode: '#d39039',
   codeBorder: '#37373a',
   link: '#69a8f5',
   quoteBar: '#4a4a50',
@@ -95,6 +105,8 @@ const dark: Theme = {
   syntaxTag: '#7ee787',
   syntaxAttribute: '#79c0ff',
   syntaxFunction: '#d2a8ff',
+  searchHit: '#5c4e24',
+  searchCurrent: '#8d6b1f',
 };
 
 export function useTheme(): Theme {

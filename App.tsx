@@ -12,16 +12,31 @@ import { StyleSheet, View } from 'react-native';
 import { DocumentPanel } from './src/components/DocumentPanel';
 import { Sidebar } from './src/components/Sidebar';
 import {
+  applyLoadedHistory,
+  canGoBack,
+  canGoNext,
+  currentHistoryPath,
+  emptyFileHistory,
+  recordVisit,
+  retargetHistory,
+  stepBack,
+  stepNext,
+  type FileHistory,
+} from './src/fileHistory';
+import {
   askForFolder,
   bookmarkFolder,
   closeFolder,
   openFolder,
 } from './src/folderAccess';
 import {
+  loadFileHistory,
   loadFolderBookmark,
   loadLastFile,
   loadLastFolder,
   loadSidebarVisible,
+  moveFileHistory,
+  saveFileHistory,
   saveFolderBookmark,
   saveLastFile,
   saveLastFolder,
@@ -55,6 +70,18 @@ function App() {
   // The tree shows by default; hiding it is how you get a full-width read.
   const [isSidebarVisible, setIsSidebarVisible] = useState(true);
   const hasChosenSidebar = useRef(false);
+  const [history, setHistory] = useState(emptyFileHistory());
+  const [historyFolder, setHistoryFolder] = useState<string | null>(null);
+  const historyRef = useRef(history);
+  const revealTicket = useRef(0);
+  const rootPathRef = useRef(rootPath);
+  rootPathRef.current = rootPath;
+
+  if (rootPath !== historyFolder) {
+    setHistoryFolder(rootPath);
+    setHistory(emptyFileHistory());
+    historyRef.current = emptyFileHistory();
+  }
 
   // The write stays out of the state updater, which React may call twice.
   const toggleSidebar = useCallback(() => {
@@ -83,15 +110,22 @@ function App() {
       if (directory === null) {
         return; // The user cancelled the dialog.
       }
-      pendingFilePath.current = null;
+      const currentRoot = rootPathRef.current;
+      const resume = currentHistoryPath(
+        directory === currentRoot
+          ? historyRef.current
+          : await loadFileHistory(directory),
+      );
+      pendingFilePath.current = resume;
       setSelectedFile(null);
-      saveLastFile(null);
+      saveLastFile(resume);
       // The panel's grant is live now, which is the only moment a bookmark for
       // it can be made.
       closeFolder();
       saveFolderBookmark(await bookmarkFolder(directory));
       setRootPath(directory);
       saveLastFolder(directory);
+      setScanNonce(previous => previous + 1);
     } catch (cause) {
       setError(
         cause instanceof Error ? cause.message : 'Could not open that folder.',
@@ -99,10 +133,76 @@ function App() {
     }
   }, []);
 
-  const selectFile = useCallback((file: FileNode) => {
-    setSelectedFile(file);
-    saveLastFile(file.path);
-  }, []);
+  const remember = useCallback(
+    (next: FileHistory) => {
+      if (next === historyRef.current) {
+        return false;
+      }
+      historyRef.current = next;
+      setHistory(next);
+      if (rootPath !== null) {
+        saveFileHistory(rootPath, next);
+      }
+      return true;
+    },
+    [rootPath],
+  );
+
+  const reveal = useCallback(
+    (path: string) => {
+      saveLastFile(path);
+      const found = root === null ? null : findFile(root, path);
+      if (found !== null) {
+        setSelectedFile(found);
+        return;
+      }
+      if (rootPath === null) {
+        return;
+      }
+      const ticket = (revealTicket.current += 1);
+      scanToFile(rootPath, path)
+        .then(tree => {
+          if (ticket !== revealTicket.current) {
+            return;
+          }
+          setRoot(tree);
+          setSelectedFile(findFile(tree, path));
+        })
+        .catch(() => {});
+    },
+    [root, rootPath],
+  );
+
+  const selectFile = useCallback(
+    (file: FileNode) => {
+      setSelectedFile(file);
+      saveLastFile(file.path);
+      remember(recordVisit(historyRef.current, file.path));
+    },
+    [remember],
+  );
+
+  const goBack = useCallback(() => {
+    const next = stepBack(historyRef.current);
+    if (!remember(next)) {
+      return;
+    }
+    const path = currentHistoryPath(next);
+    if (path !== null) {
+      reveal(path);
+    }
+  }, [remember, reveal]);
+
+  const goNext = useCallback(() => {
+    const next = stepNext(historyRef.current);
+    if (!remember(next)) {
+      return;
+    }
+    const path = currentHistoryPath(next);
+    if (path !== null) {
+      reveal(path);
+    }
+  }, [remember, reveal]);
 
   const reloadFolder = useCallback(() => {
     setScanNonce(previous => previous + 1);
@@ -126,6 +226,30 @@ function App() {
       return findFile(root, current.path) === null ? null : current;
     });
   }, [root]);
+
+  useEffect(() => {
+    if (rootPath === null) {
+      return;
+    }
+    let cancelled = false;
+    const openedAt = pendingFilePath.current;
+    loadFileHistory(rootPath).then(stored => {
+      if (cancelled) {
+        return;
+      }
+      const next = applyLoadedHistory(stored, historyRef.current, openedAt);
+      if (next !== historyRef.current) {
+        historyRef.current = next;
+        setHistory(next);
+      }
+      if (next !== stored) {
+        saveFileHistory(rootPath, next);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [rootPath]);
 
   useEffect(() => {
     if (rootPath === null) {
@@ -228,6 +352,10 @@ function App() {
         file={selectedFile}
         isSidebarVisible={isSidebarVisible}
         onToggleSidebar={toggleSidebar}
+        canGoBack={canGoBack(history)}
+        canGoNext={canGoNext(history)}
+        onBack={goBack}
+        onNext={goNext}
       />
     </View>
   );
@@ -249,8 +377,20 @@ async function restoreFolder(): Promise<string | null> {
   if (opened === null) {
     return stored;
   }
-  if (opened.path !== stored) {
+  if (stored !== null && opened.path !== stored) {
     saveLastFolder(opened.path);
+    const last = await loadLastFile();
+    if (last !== null && last.startsWith(`${stored}/`)) {
+      saveLastFile(`${opened.path}${last.slice(stored.length)}`);
+    }
+    const moved = retargetHistory(
+      await loadFileHistory(stored),
+      stored,
+      opened.path,
+    );
+    if (moved.paths.length > 0) {
+      moveFileHistory(stored, opened.path, moved);
+    }
   }
   if (opened.isStale) {
     bookmarkFolder(opened.path).then(saveFolderBookmark);

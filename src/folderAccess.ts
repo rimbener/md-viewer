@@ -12,7 +12,7 @@
  * path, which is all an unsandboxed build ever needed.
  */
 
-import { NativeModules } from 'react-native';
+import { NativeEventEmitter, NativeModules } from 'react-native';
 import { pickDirectory } from 'react-native-document-picker-macos';
 
 type OpenedFolder = {
@@ -26,9 +26,25 @@ type FolderAccessModule = {
   bookmark(path: string): Promise<string | null>;
   open(bookmark: string): Promise<OpenedFolder | null>;
   close(): void;
+  watch(path: string): void;
+  unwatch(): void;
+  addListener(eventType: string): void;
+  removeListeners(count: number): void;
 };
 
 const native: FolderAccessModule | undefined = NativeModules.FolderAccess;
+
+let emitter: NativeEventEmitter | undefined;
+
+function events(): NativeEventEmitter | undefined {
+  if (native === undefined) {
+    return undefined;
+  }
+  if (emitter === undefined) {
+    emitter = new NativeEventEmitter(native);
+  }
+  return emitter;
+}
 
 /**
  * Asks for a folder, and answers with its path or null when the dialog was
@@ -75,4 +91,34 @@ export function closeFolder(): void {
   try {
     native?.close();
   } catch {}
+}
+
+/** Calls `onChange` when the file at `path` changes on disk. */
+export function watchFile(path: string, onChange: () => void): () => void {
+  const bus = events();
+  if (bus === undefined || native === undefined) {
+    return () => {};
+  }
+
+  try {
+    const sub = bus.addListener('fileChanged', (event: { path?: string }) => {
+      if (event.path === path) {
+        onChange();
+      }
+    });
+    try {
+      native.watch(path);
+    } catch {
+      sub.remove();
+      return () => {};
+    }
+    return () => {
+      sub.remove();
+      try {
+        native.unwatch();
+      } catch {}
+    };
+  } catch {
+    return () => {};
+  }
 }

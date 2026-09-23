@@ -1,13 +1,17 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import { emptyFileHistory, recordVisit } from '../src/fileHistory';
 import {
   loadCharacters,
+  loadFileHistory,
   loadFontScheme,
   loadLastFile,
   loadLastFolder,
   loadSidebarVisible,
   loadZoom,
+  moveFileHistory,
   saveCharacters,
+  saveFileHistory,
   saveFontScheme,
   saveLastFile,
   saveLastFolder,
@@ -107,6 +111,60 @@ describe('session persistence', () => {
   it('survives a storage failure', async () => {
     storage.getItem.mockRejectedValueOnce(new Error('disk is on fire'));
     await expect(loadLastFolder()).resolves.toBeNull();
+  });
+});
+
+describe('file history persistence', () => {
+  it('keeps a separate list for each folder', async () => {
+    const notes = recordVisit(emptyFileHistory(), '/notes/a.md');
+    const docs = recordVisit(emptyFileHistory(), '/docs/b.md');
+    await saveFileHistory('/notes', notes);
+    await saveFileHistory('/docs', docs);
+
+    await expect(loadFileHistory('/notes')).resolves.toEqual(notes);
+    await expect(loadFileHistory('/docs')).resolves.toEqual(docs);
+  });
+
+  it('returns empty when nothing has been stored', async () => {
+    await expect(loadFileHistory('/notes')).resolves.toEqual(
+      emptyFileHistory(),
+    );
+  });
+
+  it('moves a list onto a new folder path and drops the old one', async () => {
+    const history = recordVisit(emptyFileHistory(), '/old/a.md');
+    await saveFileHistory('/old', history);
+    await moveFileHistory('/old', '/new', {
+      paths: ['/new/a.md'],
+      index: 0,
+    });
+
+    await expect(loadFileHistory('/new')).resolves.toEqual({
+      paths: ['/new/a.md'],
+      index: 0,
+    });
+    await expect(loadFileHistory('/old')).resolves.toEqual(emptyFileHistory());
+  });
+
+  it('keeps the 20 folders opened most recently', async () => {
+    const saves: Promise<void>[] = [];
+    for (let index = 0; index < 21; index += 1) {
+      saves.push(
+        saveFileHistory(`/folder/${index}`, {
+          paths: [`/folder/${index}/a.md`],
+          index: 0,
+        }),
+      );
+    }
+    await Promise.all(saves);
+
+    await expect(loadFileHistory('/folder/0')).resolves.toEqual(
+      emptyFileHistory(),
+    );
+    await expect(loadFileHistory('/folder/20')).resolves.toEqual({
+      paths: ['/folder/20/a.md'],
+      index: 0,
+    });
   });
 });
 

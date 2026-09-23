@@ -18,6 +18,7 @@ jest.mock('../src/folderAccess', () => ({
   bookmarkFolder: jest.fn(async () => null),
   openFolder: jest.fn(async () => null),
   closeFolder: jest.fn(),
+  watchFile: jest.fn(() => () => {}),
 }));
 
 const fs = { readDir, readFile } as unknown as {
@@ -159,6 +160,29 @@ it('makes the bookmark again when the resolved one is stale', async () => {
   await renderApp();
 
   expect(await storage.getItem('mdviewer.lastFolderBookmark')).toBe('FRESH');
+});
+
+it('moves the open file and its history when the bookmarked folder moved', async () => {
+  await storage.setItem('mdviewer.lastFolder', '/before');
+  await storage.setItem('mdviewer.lastFolderBookmark', 'BOOKMARK');
+  await storage.setItem('mdviewer.lastFile', '/before/todo.md');
+  await storage.setItem(
+    'mdviewer.fileHistory:/before',
+    JSON.stringify({
+      paths: ['/before/notes.md', '/before/todo.md'],
+      index: 1,
+    }),
+  );
+  access.openFolder.mockResolvedValueOnce({ path: '/notes', isStale: false });
+
+  const rendered = await renderApp();
+
+  expect(rendered).toContain('/notes/todo.md');
+  expect(await storage.getItem('mdviewer.lastFile')).toBe('/notes/todo.md');
+  expect(await storage.getItem('mdviewer.fileHistory:/before')).toBeNull();
+  expect(await storage.getItem('mdviewer.fileHistory:/notes')).toContain(
+    '/notes/notes.md',
+  );
 });
 
 it('stores a bookmark for the folder someone picks', async () => {

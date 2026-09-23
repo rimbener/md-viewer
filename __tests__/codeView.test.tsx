@@ -75,3 +75,11 @@ describe('a highlighted code block', () => {
     expect(strings(tree)).toEqual(['x = 1']);
   });
 });
+
+describe('a code span', () => {
+  it('tints text inside backticks', () => {
+    const tree = render('use `name` here');
+
+    expect(colorOf(tree, 'name')).toBe('#d39039');
+  });
+});

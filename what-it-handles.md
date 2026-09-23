@@ -129,6 +129,12 @@ makes it, `src/folderAccess.ts` reads it), which also means the folder is found
 again after it is moved or renamed. A bookmark that no longer resolves falls
 back to the folder dialog.
 
+The files opened in a folder are kept as a list for that folder alone. Back and
+Next in the document header move through the list. Opening a file adds it and
+drops the files that were ahead. The list keeps the last 100 opens. The 20
+folders opened most recently each keep a list. When a bookmark follows a folder
+that moved, the open file and the paths in that list move with it.
+
 Zoom, the font scheme and the line length are properties of the reader: they
 survive switching files and come back on the next launch.
 
@@ -140,7 +146,19 @@ of specs live — so a hidden folder must also be selectable as the root.
 The scan walks three directory levels from the folder it starts at. Clicking a
 folder in the tree walks that folder again, so a file deeper than three levels,
 or added since the last walk of that folder, appears then. Reload walks the
-open root again without asking for it. The folder is not watched.
+open root again without asking for it. The tree is not watched.
+
+The open file is. A vnode source on that path rereads it when the file changes
+on disk, so a save in another editor shows up without switching away. A session
+edit is left alone: the header says the file changed, and the buffer stays.
+
+## Find
+
+The document header has a Find field. It is the last control in the header.
+The field marks hits in the open document. Letter case does not matter.
+Previous and Next move through the hits, and the view scrolls to the current
+hit. Return in the field does the same as Next. A different file clears the
+field. The field is not kept after you quit.
 
 ## Performance
 

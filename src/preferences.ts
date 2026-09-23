@@ -1,7 +1,7 @@
 /**
  * Viewer preferences that outlive a launch: the zoom level, the line length,
- * the sidebar and editor visibility, and the folder and file that were open
- * last.
+ * the sidebar and editor visibility, the folder and file that were open last,
+ * and the files opened in each folder.
  *
  * Storage is best-effort: a read that fails falls back to the default and a
  * write that fails is dropped, because losing a preference is never worth
@@ -11,6 +11,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { isCharacterCount } from './column';
+import {
+  decodeFileHistory,
+  encodeFileHistory,
+  type FileHistory,
+} from './fileHistory';
 import { isSchemeId } from './typography';
 import { isZoomLevel } from './zoom';
 
@@ -22,6 +27,14 @@ const FILE_KEY = 'mdviewer.lastFile';
 const FONT_KEY = 'mdviewer.fontScheme';
 const SIDEBAR_KEY = 'mdviewer.sidebarVisible';
 const EDITOR_KEY = 'mdviewer.editorVisible';
+const HISTORY_INDEX_KEY = 'mdviewer.fileHistoryFolders';
+
+/** Lists kept on disk. A folder opened earlier than these loses its list. */
+const MAX_HISTORY_FOLDERS = 20;
+
+function historyKey(folder: string): string {
+  return `mdviewer.fileHistory:${folder}`;
+}
 
 async function read(key: string): Promise<string | null> {
   try {
@@ -139,4 +152,82 @@ export async function loadLastFile(): Promise<string | null> {
 /** Passing null forgets the file, which is what changing folder should do. */
 export function saveLastFile(path: string | null): void {
   write(FILE_KEY, path);
+}
+
+/** The files opened in `folder`, newest visit last, or empty when none are stored. */
+export async function loadFileHistory(folder: string): Promise<FileHistory> {
+  return decodeFileHistory(await read(historyKey(folder)), folder);
+}
+
+/** Records that list and marks `folder` as just opened. */
+export function saveFileHistory(
+  folder: string,
+  history: FileHistory,
+): Promise<void> {
+  write(historyKey(folder), encodeFileHistory(history));
+  return noteFolders(folder, null);
+}
+
+/** Moves a list onto the path a bookmark followed, and drops the old path. */
+export function moveFileHistory(
+  from: string,
+  to: string,
+  history: FileHistory,
+): Promise<void> {
+  write(historyKey(to), encodeFileHistory(history));
+  return noteFolders(to, from);
+}
+
+function parseFolderList(value: string | null): string[] {
+  if (value === null) {
+    return [];
+  }
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+    return parsed.filter(
+      (item): item is string =>
+        typeof item === 'string' && item.startsWith('/'),
+    );
+  } catch {
+    return [];
+  }
+}
+
+async function put(key: string, value: string | null): Promise<void> {
+  try {
+    if (value === null) {
+      await AsyncStorage.removeItem(key);
+    } else {
+      await AsyncStorage.setItem(key, value);
+    }
+  } catch {}
+}
+
+// Later saves must see earlier index updates, or a dropped folder can return.
+let folderQueue: Promise<void> = Promise.resolve();
+
+function noteFolders(add: string, drop: string | null): Promise<void> {
+  const run = folderQueue.then(async () => {
+    const folders = parseFolderList(await read(HISTORY_INDEX_KEY)).filter(
+      path => path !== add && path !== drop,
+    );
+    folders.push(add);
+    const overflow = folders.length - MAX_HISTORY_FOLDERS;
+    const removed = overflow > 0 ? folders.splice(0, overflow) : [];
+    await put(HISTORY_INDEX_KEY, JSON.stringify(folders));
+    if (drop !== null) {
+      await put(historyKey(drop), null);
+    }
+    for (const path of removed) {
+      await put(historyKey(path), null);
+    }
+  });
+  folderQueue = run.then(
+    () => undefined,
+    () => undefined,
+  );
+  return folderQueue;
 }
