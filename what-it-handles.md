@@ -154,7 +154,7 @@ edit is left alone: the header says the file changed, and the buffer stays.
 
 ## Find
 
-The document header has a Find field. It is the last control in the header.
+The file name sits on its own row above the tools. Each tool has a small title: Sidebar, History, Editor, Font, Width, Zoom, and Find. Find is the last control on that tools row.
 The field marks hits in the open document. Letter case does not matter.
 Previous and Next move through the hits, and the view scrolls to the current
 hit. Return in the field does the same as Next. A different file clears the

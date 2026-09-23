@@ -1,5 +1,12 @@
 import { readFile } from '@dr.pogodin/react-native-fs';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import {
   ActivityIndicator,
   ScrollView,
@@ -348,12 +355,15 @@ export function DocumentPanel({
     return (
       <View style={styles.container}>
         <View style={[styles.header, { borderBottomColor: theme.border }]}>
-          <SidebarToggle
-            isVisible={isSidebarVisible}
-            onToggle={onToggleSidebar}
-          />
-          {historyNav}
-          <View style={styles.title} />
+          <View style={styles.tools}>
+            <Tool title="Sidebar">
+              <SidebarToggle
+                isVisible={isSidebarVisible}
+                onToggle={onToggleSidebar}
+              />
+            </Tool>
+            <Tool title="History">{historyNav}</Tool>
+          </View>
         </View>
         <View style={[styles.body, styles.centered]}>
           <Text style={[styles.message, { color: theme.mutedText }]}>
@@ -399,17 +409,7 @@ export function DocumentPanel({
   return (
     <View style={styles.container}>
       <View style={[styles.header, { borderBottomColor: theme.border }]}>
-        <SidebarToggle
-          isVisible={isSidebarVisible}
-          onToggle={onToggleSidebar}
-        />
-        {historyNav}
-        <EditorToggle
-          isVisible={isEditorVisible}
-          disabled={!canEdit}
-          onToggle={toggleEditor}
-        />
-        <View style={styles.title}>
+        <View style={styles.fileInfo}>
           <Text
             style={[styles.fileName, { color: theme.text }]}
             numberOfLines={1}
@@ -417,28 +417,56 @@ export function DocumentPanel({
             {file.name}
           </Text>
           <Text
-            style={[styles.filePath, { color: theme.mutedText }]}
+            style={[styles.filePath, { color: theme.syntaxKeyword }]}
             numberOfLines={1}
           >
             {/* Edits live in memory only, which is worth saying out loud. */}
             {draft === null
-              ? file.path
+              ? null
               : diskChanged
-              ? `${file.path} — edited, not saved — file changed on disk`
-              : `${file.path} — edited, not saved`}
+              ? ` — edited, not saved — file changed on disk`
+              : ` — edited, not saved`}
           </Text>
         </View>
-        <FontControl schemeId={schemeId} onChange={changeScheme} />
-        <ColumnControl characters={characters} onChange={changeCharacters} />
-        <ZoomControl scale={scale} onChange={changeZoom} />
-        <DocumentSearch
-          query={query}
-          count={matchCount}
-          active={active}
-          capped={capped}
-          onQuery={changeQuery}
-          onActive={setActive}
-        />
+        <View style={styles.tools}>
+          <Tool title="Sidebar">
+            <SidebarToggle
+              isVisible={isSidebarVisible}
+              onToggle={onToggleSidebar}
+            />
+          </Tool>
+          <Tool title="History">{historyNav}</Tool>
+          <Tool title="Editor">
+            <EditorToggle
+              isVisible={isEditorVisible}
+              disabled={!canEdit}
+              onToggle={toggleEditor}
+            />
+          </Tool>
+          <View style={styles.spacer} />
+          <Tool title="Font">
+            <FontControl schemeId={schemeId} onChange={changeScheme} />
+          </Tool>
+          <Tool title="Width">
+            <ColumnControl
+              characters={characters}
+              onChange={changeCharacters}
+            />
+          </Tool>
+          <Tool title="Zoom">
+            <ZoomControl scale={scale} onChange={changeZoom} />
+          </Tool>
+          <Tool title="Find">
+            <DocumentSearch
+              query={query}
+              count={matchCount}
+              active={active}
+              capped={capped}
+              onQuery={changeQuery}
+              onActive={setActive}
+            />
+          </Tool>
+        </View>
       </View>
 
       <FindProvider
@@ -470,6 +498,25 @@ export function DocumentPanel({
           document
         )}
       </FindProvider>
+    </View>
+  );
+}
+
+type ToolProps = {
+  title: string;
+  children: ReactNode;
+};
+
+/** A short name above one header control. */
+function Tool({ title, children }: ToolProps) {
+  const theme = useTheme();
+
+  return (
+    <View style={styles.tool}>
+      <Text style={[styles.toolTitle, { color: theme.mutedText }]}>
+        {title}
+      </Text>
+      {children}
     </View>
   );
 }
@@ -513,15 +560,29 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+    gap: 10,
     paddingHorizontal: 24,
     paddingTop: 18,
     paddingBottom: 12,
     borderBottomWidth: 1,
   },
-  title: {
+  fileInfo: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  tools: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 12,
+  },
+  tool: {
+    alignItems: 'center',
+    gap: 4,
+  },
+  toolTitle: {
+    fontSize: 10,
+  },
+  spacer: {
     flex: 1,
   },
   fileName: {

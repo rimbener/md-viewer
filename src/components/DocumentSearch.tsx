@@ -12,7 +12,7 @@ type DocumentSearchProps = {
   onActive: (index: number) => void;
 };
 
-/** Find field, match count, and previous / next. Last control in the header. */
+/** Find field, match count, and previous / next. Last control on the tools row. */
 export function DocumentSearch({
   query,
   count,

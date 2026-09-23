@@ -190,6 +190,6 @@ it('keeps a draft and says so when disk changes under it', async () => {
   expect(shows(tree, 'Changed')).toBe(true);
   expect(shows(tree, 'Reloaded')).toBe(false);
   expect(
-    shows(tree, '/notes/notes.md — edited, not saved — file changed on disk'),
+    shows(tree, ' — edited, not saved — file changed on disk'),
   ).toBe(true);
 });

@@ -157,5 +157,5 @@ it('reopens a stored file deeper than three levels', async () => {
   const tree = await renderApp();
 
   expect(textOf(tree)).toContain('buried.md');
-  expect(textOf(tree)).toContain('/notes/a/b/c/d/buried.md');
+  expect(textOf(tree)).toContain('Notes');
 });

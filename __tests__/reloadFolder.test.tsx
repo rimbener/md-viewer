@@ -114,7 +114,7 @@ it('keeps the selected file after a reload', async () => {
   fs.readDir.mockResolvedValue([file('notes.md'), file('new.md')]);
   await press(reloadOf(tree));
 
-  expect(textOf(tree)).toContain('/notes/notes.md');
+  expect(textOf(tree)).toContain('notes.md');
   expect(textOf(tree)).toContain('Notes');
 });
 

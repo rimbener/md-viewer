@@ -89,6 +89,26 @@ function hitBackgrounds(
     );
 }
 
+it('names each tool', async () => {
+  const tree = await renderApp();
+  const titles = tree.root
+    .findAllByType(Text)
+    .map(node => node.props.children)
+    .filter(child => typeof child === 'string');
+
+  expect(titles).toEqual(
+    expect.arrayContaining([
+      'Sidebar',
+      'History',
+      'Editor',
+      'Font',
+      'Width',
+      'Zoom',
+      'Find',
+    ]),
+  );
+});
+
 it('places the field last in the header', async () => {
   const tree = await renderApp();
   const labels = tree.root

@@ -253,10 +253,11 @@ it('keeps edits when another file is opened and comes back to them', async () =>
 
 it('says so when the buffer no longer matches the file on disk', async () => {
   const tree = await renderApp();
-  expect(shows(tree, '/notes/notes.md')).toBe(true);
+  expect(shows(tree, 'notes.md')).toBe(true);
+  expect(shows(tree, 'edited, not saved')).toBe(false);
 
   await press(toggleOf(tree));
   await type(tree, '# Changed');
 
-  expect(shows(tree, '/notes/notes.md — edited, not saved')).toBe(true);
+  expect(shows(tree, ' — edited, not saved')).toBe(true);
 });

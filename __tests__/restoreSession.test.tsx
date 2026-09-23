@@ -95,8 +95,6 @@ it('reopens the stored folder and file without asking', async () => {
 
   expect(picker).not.toHaveBeenCalled();
   expect(rendered).toContain('todo.md');
-  // The document panel header, then the rendered markdown itself.
-  expect(rendered).toContain('/notes/todo.md');
   expect(rendered).toContain('Yesterday');
 });
 
@@ -177,7 +175,8 @@ it('moves the open file and its history when the bookmarked folder moved', async
 
   const rendered = await renderApp();
 
-  expect(rendered).toContain('/notes/todo.md');
+  expect(rendered).toContain('todo.md');
+  expect(rendered).toContain('Yesterday');
   expect(await storage.getItem('mdviewer.lastFile')).toBe('/notes/todo.md');
   expect(await storage.getItem('mdviewer.fileHistory:/before')).toBeNull();
   expect(await storage.getItem('mdviewer.fileHistory:/notes')).toContain(
