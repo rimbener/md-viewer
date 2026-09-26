@@ -3,4 +3,6 @@
 
 @interface AppDelegate : RCTAppDelegate
 
+- (IBAction)focusFind:(id)sender;
+
 @end

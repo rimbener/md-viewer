@@ -1,7 +1,42 @@
 #import "AppDelegate.h"
 
 #import <React/RCTBundleURLProvider.h>
+#import <React/RCTEventEmitter.h>
 #import <ReactAppDependencyProvider/RCTAppDependencyProvider.h>
+
+static NSString *const kFocusFind = @"MdViewerFocusFind";
+
+@interface FindFocus : RCTEventEmitter
+@end
+
+@implementation FindFocus
+
+RCT_EXPORT_MODULE();
+
+- (NSArray<NSString *> *)supportedEvents
+{
+  return @[ @"focusFind" ];
+}
+
+- (void)startObserving
+{
+  [[NSNotificationCenter defaultCenter] addObserver:self
+                                           selector:@selector(onFocusFind)
+                                               name:kFocusFind
+                                             object:nil];
+}
+
+- (void)stopObserving
+{
+  [[NSNotificationCenter defaultCenter] removeObserver:self name:kFocusFind object:nil];
+}
+
+- (void)onFocusFind
+{
+  [self sendEventWithName:@"focusFind" body:nil];
+}
+
+@end
 
 @implementation AppDelegate
 
@@ -28,6 +63,12 @@
 #else
   return [[NSBundle mainBundle] URLForResource:@"main" withExtension:@"jsbundle"];
 #endif
+}
+
+// The Find menu item would open the system panel on the text view.
+- (IBAction)focusFind:(__unused id)sender
+{
+  [[NSNotificationCenter defaultCenter] postNotificationName:kFocusFind object:nil];
 }
 
 /// This method controls whether the `concurrentRoot`feature of React18 is turned on or off.

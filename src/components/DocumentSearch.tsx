@@ -1,5 +1,7 @@
+import { useEffect, useRef } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { onFocusFind } from '../focusFind';
 import { MAX_QUERY_LENGTH } from '../search';
 import { useTheme } from '../theme';
 
@@ -37,12 +39,23 @@ export function DocumentSearch({
 }: DocumentSearchProps) {
   const theme = useTheme();
   const hasQuery = query.length > 0;
+  const fieldRef = useRef<TextInput>(null);
+
+  useEffect(() => onFocusFind(() => fieldRef.current?.focus()), []);
 
   const go = (direction: number) => {
     if (count <= 0) {
       return;
     }
     onActive((active + direction + count) % count);
+  };
+
+  const submit = () => {
+    go(1);
+    // Return clears the first responder after the submit event.
+    const focus = () => fieldRef.current?.focus();
+    focus();
+    requestAnimationFrame(focus);
   };
 
   return (
@@ -54,12 +67,13 @@ export function DocumentSearch({
         ]}
       >
         <TextInput
+          ref={fieldRef}
           accessibilityLabel="Find in document"
           placeholder="Find"
           placeholderTextColor={theme.mutedText}
           value={query}
           onChangeText={onQuery}
-          onSubmitEditing={() => go(1)}
+          onSubmitEditing={submit}
           blurOnSubmit={false}
           {...arrowKeys(go)}
           autoCorrect={false}
