@@ -70,3 +70,37 @@ export function splitMatches(
 
   return { parts, more };
 }
+
+/**
+ * `y` of the line in `lines` that holds `offset` into `source`.
+ * Wrapped lines omit the break, so a `\n` in `source` is skipped when the
+ * line text does not already end with one.
+ */
+export function lineOffsetY(
+  source: string,
+  lines: { text: string; y: number }[],
+  offset: number,
+): number | null {
+  if (lines.length === 0) {
+    return null;
+  }
+
+  let cursor = 0;
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    const end = cursor + line.text.length;
+    const last = index === lines.length - 1;
+    if (offset < end || last) {
+      return line.y;
+    }
+    cursor = end;
+    if (source.charAt(cursor) === '\n' && !line.text.endsWith('\n')) {
+      if (offset === cursor) {
+        return line.y;
+      }
+      cursor += 1;
+    }
+  }
+
+  return lines[lines.length - 1].y;
+}

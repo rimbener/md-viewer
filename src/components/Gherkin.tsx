@@ -11,7 +11,7 @@
 import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { useShowText } from '../find';
+import { FindText, useShowText } from '../find';
 import type { GherkinNode, GherkinSection, GherkinSpan } from '../gherkin';
 import { useTheme, type Theme } from '../theme';
 import { BODY_SIZE, type FontScheme } from '../typography';
@@ -216,15 +216,15 @@ function NodeView({ node, styles, theme }: NodeProps) {
     case 'step':
       return (
         <View style={sheet.step}>
-          <Text
+          <FindText
             selectable
             style={[sheet.stepKeyword, { color: theme.gherkinKeyword }]}
           >
             {show(node.keyword)}
-          </Text>
-          <Text selectable style={[sheet.body, { color: theme.text }]}>
+          </FindText>
+          <FindText selectable style={[sheet.body, { color: theme.text }]}>
             <Spans spans={node.spans} styles={styles} theme={theme} />
-          </Text>
+          </FindText>
         </View>
       );
 
@@ -239,28 +239,31 @@ function NodeView({ node, styles, theme }: NodeProps) {
       return (
         <View style={sheet.indented}>
           <View style={[sheet.docString, { borderLeftColor: theme.quoteBar }]}>
-            <Text
+            <FindText
               selectable
               style={[sheet.docStringText, { color: theme.mutedText }]}
             >
               {show(node.text)}
-            </Text>
+            </FindText>
           </View>
         </View>
       );
 
     case 'comment':
       return (
-        <Text selectable style={[sheet.comment, { color: theme.mutedText }]}>
+        <FindText
+          selectable
+          style={[sheet.comment, { color: theme.mutedText }]}
+        >
           {show(node.text)}
-        </Text>
+        </FindText>
       );
 
     case 'description':
       return (
-        <Text selectable style={[sheet.body, { color: theme.mutedText }]}>
+        <FindText selectable style={[sheet.body, { color: theme.mutedText }]}>
           {show(node.text)}
-        </Text>
+        </FindText>
       );
   }
 }
@@ -280,15 +283,18 @@ function SectionView({ section, styles, theme }: SectionProps) {
       return (
         <View style={{ gap: stepGap }}>
           <Tags tags={section.tags} styles={styles} theme={theme} />
-          <Text
+          <FindText
             selectable
             style={[sheet.featureLabel, { color: theme.accent }]}
           >
             {show(section.keyword.toUpperCase())}
-          </Text>
-          <Text selectable style={[sheet.featureName, { color: theme.text }]}>
+          </FindText>
+          <FindText
+            selectable
+            style={[sheet.featureName, { color: theme.text }]}
+          >
             {show(section.name)}
-          </Text>
+          </FindText>
           <View style={{ gap: stepGap * 2, marginTop: stepGap }}>
             <Nodes nodes={section.children} styles={styles} theme={theme} />
           </View>
@@ -299,9 +305,9 @@ function SectionView({ section, styles, theme }: SectionProps) {
       return (
         <View style={{ gap: stepGap }}>
           <Tags tags={section.tags} styles={styles} theme={theme} />
-          <Text selectable style={[sheet.ruleName, { color: theme.text }]}>
+          <FindText selectable style={[sheet.ruleName, { color: theme.text }]}>
             {show(`${section.keyword}: ${section.name}`)}
-          </Text>
+          </FindText>
           <View
             style={[
               sheet.ruleGroup,
@@ -326,12 +332,15 @@ function SectionView({ section, styles, theme }: SectionProps) {
           ]}
         >
           <Tags tags={section.tags} styles={styles} theme={theme} />
-          <Text selectable style={[sheet.scenarioName, { color: theme.text }]}>
+          <FindText
+            selectable
+            style={[sheet.scenarioName, { color: theme.text }]}
+          >
             <Text style={{ color: theme.mutedText }}>
               {show(`${section.keyword}: `)}
             </Text>
             {show(section.name)}
-          </Text>
+          </FindText>
           <View style={{ gap: stepGap, marginTop: stepGap / 2 }}>
             <Nodes nodes={section.children} styles={styles} theme={theme} />
           </View>
@@ -342,13 +351,13 @@ function SectionView({ section, styles, theme }: SectionProps) {
       return (
         <View style={sheet.examples}>
           <Tags tags={section.tags} styles={styles} theme={theme} />
-          <Text
+          <FindText
             selectable
             style={[sheet.examplesLabel, { color: theme.mutedText }]}
           >
             {show(section.keyword.toUpperCase())}
             {section.name.length > 0 ? show(` — ${section.name}`) : ''}
-          </Text>
+          </FindText>
           <View style={{ gap: stepGap }}>
             <Nodes nodes={section.children} styles={styles} theme={theme} />
           </View>
@@ -371,7 +380,7 @@ function Tags({ tags, styles, theme }: TagsProps) {
   return (
     <View style={styles.sheet.tagRow}>
       {tags.map(tag => (
-        <Text
+        <FindText
           key={tag}
           selectable
           style={[
@@ -380,7 +389,7 @@ function Tags({ tags, styles, theme }: TagsProps) {
           ]}
         >
           {show(tag)}
-        </Text>
+        </FindText>
       ))}
     </View>
   );
@@ -429,7 +438,7 @@ function TableView({ node, styles, theme }: TableProps) {
                     : { borderRightColor: theme.border },
                 ]}
               >
-                <Text
+                <FindText
                   selectable
                   style={[
                     sheet.cellText,
@@ -442,7 +451,7 @@ function TableView({ node, styles, theme }: TableProps) {
                     styles={styles}
                     theme={theme}
                   />
-                </Text>
+                </FindText>
               </View>
             ))}
           </View>

@@ -1,4 +1,4 @@
-import { splitMatches } from '../src/search';
+import { lineOffsetY, splitMatches } from '../src/search';
 
 function joined(text: string, query: string, limit = 50): string {
   return splitMatches(text, query, limit)
@@ -50,6 +50,35 @@ describe('splitMatches', () => {
       const query = bits(seed + 7, (seed % 4) + 1);
       expect(joined(text, query, 20)).toBe(text);
     }
+  });
+});
+
+describe('lineOffsetY', () => {
+  const lines = [
+    { text: 'alpha ', y: 0 },
+    { text: 'beta', y: 22 },
+  ];
+
+  it('uses the line that holds the offset', () => {
+    expect(lineOffsetY('alpha beta', lines, 0)).toBe(0);
+    expect(lineOffsetY('alpha beta', lines, 6)).toBe(22);
+  });
+
+  it('skips a newline the line text does not keep', () => {
+    expect(
+      lineOffsetY(
+        'alpha\nbeta',
+        [
+          { text: 'alpha', y: 0 },
+          { text: 'beta', y: 18 },
+        ],
+        6,
+      ),
+    ).toBe(18);
+  });
+
+  it('returns null when there are no lines', () => {
+    expect(lineOffsetY('alpha', [], 0)).toBeNull();
   });
 });
 

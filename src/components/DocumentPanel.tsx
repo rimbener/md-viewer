@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 
 import { DEFAULT_CHARACTERS } from '../column';
-import { FindProvider, useShowText } from '../find';
+import { FindProvider, FindText, useShowText } from '../find';
 import { watchFile } from '../folderAccess';
 import { parseMarkdown } from '../markdown/parseBlocks';
 import {
@@ -532,7 +532,7 @@ function PlainBody({ text, scale }: PlainBodyProps) {
   const show = useShowText();
 
   return (
-    <Text
+    <FindText
       selectable
       style={[
         styles.plainText,
@@ -544,7 +544,7 @@ function PlainBody({ text, scale }: PlainBodyProps) {
       ]}
     >
       {show(text)}
-    </Text>
+    </FindText>
   );
 }
 

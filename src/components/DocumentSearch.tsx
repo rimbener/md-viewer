@@ -3,6 +3,20 @@ import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { MAX_QUERY_LENGTH } from '../search';
 import { useTheme } from '../theme';
 
+function arrowKeys(go: (direction: number) => void) {
+  return {
+    // Up and Down move through hits. The field would otherwise ignore them.
+    keyDownEvents: [{ key: 'ArrowUp' }, { key: 'ArrowDown' }],
+    onKeyDown: (event: { nativeEvent: { key: string } }) => {
+      if (event.nativeEvent.key === 'ArrowDown') {
+        go(1);
+      } else if (event.nativeEvent.key === 'ArrowUp') {
+        go(-1);
+      }
+    },
+  };
+}
+
 type DocumentSearchProps = {
   query: string;
   count: number;
@@ -47,6 +61,7 @@ export function DocumentSearch({
           onChangeText={onQuery}
           onSubmitEditing={() => go(1)}
           blurOnSubmit={false}
+          {...arrowKeys(go)}
           autoCorrect={false}
           autoCapitalize="none"
           spellCheck={false}

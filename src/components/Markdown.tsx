@@ -20,7 +20,7 @@ import {
   type TextStyle,
 } from 'react-native';
 
-import { useShowText } from '../find';
+import { FindText, useShowText } from '../find';
 import { isGherkin, parseGherkin } from '../gherkin';
 import { highlight, languageOf, type TokenKind } from '../highlight';
 import { resolveUri } from '../markdown/resolveUri';
@@ -258,7 +258,7 @@ function BlockView({ block, basePath, color, isFirst, spacing }: BlockProps) {
     case 'heading': {
       const underlined = block.level <= 2;
       return (
-        <Text
+        <FindText
           selectable
           style={[
             headings[block.level],
@@ -272,7 +272,7 @@ function BlockView({ block, basePath, color, isFirst, spacing }: BlockProps) {
           ]}
         >
           <Inline nodes={block.content} color={textColor} />
-        </Text>
+        </FindText>
       );
     }
 
@@ -284,12 +284,12 @@ function BlockView({ block, basePath, color, isFirst, spacing }: BlockProps) {
         );
       }
       return (
-        <Text
+        <FindText
           selectable
           style={[sheet.paragraph, { color: textColor, marginBottom: spacing }]}
         >
           <Inline nodes={block.content} color={textColor} />
-        </Text>
+        </FindText>
       );
     }
 
@@ -536,7 +536,7 @@ function CodeText({
   }, [language, text]);
 
   return (
-    <Text selectable style={[sheet.codeText, { color: theme.text }]}>
+    <FindText selectable style={[sheet.codeText, { color: theme.text }]}>
       {tokens === null
         ? show(text)
         : tokens.map((token, index) =>
@@ -551,7 +551,7 @@ function CodeText({
               </Text>
             ),
           )}
-    </Text>
+    </FindText>
   );
 }
 
@@ -602,7 +602,7 @@ function TableRow({
               : { borderRightColor: theme.border },
           ]}
         >
-          <Text
+          <FindText
             selectable
             style={[
               sheet.paragraph,
@@ -611,7 +611,7 @@ function TableRow({
             ]}
           >
             <Inline nodes={cell} color={theme.text} />
-          </Text>
+          </FindText>
         </View>
       ))}
     </View>
@@ -742,7 +742,7 @@ function MarkdownImage({ node, basePath, spacing }: MarkdownImageProps) {
   // Until the intrinsic size is known there is no sensible box to reserve.
   if (size === null) {
     return (
-      <Text
+      <FindText
         style={[
           sheet.paragraph,
           sheet.emphasis,
@@ -750,7 +750,7 @@ function MarkdownImage({ node, basePath, spacing }: MarkdownImageProps) {
         ]}
       >
         {show(failed ? `⚠︎ ${node.alt || node.src}` : node.alt)}
-      </Text>
+      </FindText>
     );
   }
 

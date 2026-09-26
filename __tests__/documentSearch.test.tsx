@@ -77,13 +77,23 @@ async function typeFind(
   });
 }
 
+function textContent(children: unknown): string {
+  if (typeof children === 'string' || typeof children === 'number') {
+    return String(children);
+  }
+  if (Array.isArray(children)) {
+    return children.map(textContent).join('');
+  }
+  return '';
+}
+
 function hitBackgrounds(
   tree: ReactTestRenderer.ReactTestRenderer,
   content: string,
 ): string[] {
   return tree.root
     .findAllByType(Text)
-    .filter(node => node.props.children === content)
+    .filter(node => textContent(node.props.children) === content)
     .map(
       node => StyleSheet.flatten(node.props.style)?.backgroundColor as string,
     );
@@ -134,6 +144,20 @@ it('marks hits and moves the current one', async () => {
 
   await ReactTestRenderer.act(async () => {
     tree.root.findByProps({ accessibilityLabel: 'Next match' }).props.onPress();
+  });
+
+  expect(
+    tree.root.findByProps({ accessibilityLabel: 'Match 2 of 2' }),
+  ).toBeTruthy();
+  expect(hitBackgrounds(tree, 'alpha')).toEqual(['#ffe08a', '#f5a524']);
+});
+
+it('moves with the down arrow in the field', async () => {
+  const tree = await renderApp();
+  await typeFind(tree, 'alpha');
+
+  await ReactTestRenderer.act(async () => {
+    findField(tree).props.onKeyDown({ nativeEvent: { key: 'ArrowDown' } });
   });
 
   expect(

@@ -170,8 +170,9 @@ edit is left alone: the header says the file changed, and the buffer stays.
 The file name sits on its own row above the tools. Each tool has a small title: Sidebar, History, Editor, Font, Width, Zoom, and Find. Find is the last control on that tools row.
 The field marks hits in the open document. Letter case does not matter.
 Previous and Next move through the hits, and the view scrolls to the current
-hit. Return in the field does the same as Next. A different file clears the
-field. The field is not kept after you quit.
+hit. Return in the field does the same as Next. Up and Down in the field do
+the same as Previous and Next. A different file clears the field. The field
+is not kept after you quit.
 
 ## Performance
 
