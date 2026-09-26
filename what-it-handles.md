@@ -44,8 +44,9 @@ while `_emphasised_` still works.
 
 ## Syntax highlighting
 
-A fence tagged with one of these languages is tokenised and tinted. Every other
-fence renders as uniform monospace.
+A fence tagged with one of these languages is tokenised and tinted. A `mermaid`
+fence is drawn, as described below. Every other fence renders as uniform
+monospace.
 
 | Fence                                   | Read as    |
 | --------------------------------------- | ---------- |
@@ -103,6 +104,18 @@ by. Tags stack: several tag lines above one scenario all belong to it.
 Sections close by rank, so a `Scenario:` ends at the next `Scenario:` or `Rule:`
 without needing a blank line, and an `Examples:` block belongs to the scenario
 above it.
+
+## Mermaid
+
+A fenced block tagged `mermaid` is drawn as a diagram instead of being printed
+as source. The drawing is Mermaid itself, running in a web view, so every
+diagram type that the bundled build can draw is drawn. Colours come from the app
+theme. The type size follows the zoom and the body font.
+
+The script is `mermaid.min.js` from the bundled Mermaid package, copied into
+the app. It is not loaded from the network. A control on the diagram switches
+it to the fence text, and back. A fence Mermaid cannot draw, and a fence over
+50,000 characters, is shown as the monospace block.
 
 ## Raw HTML
 

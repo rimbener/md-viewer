@@ -4,7 +4,22 @@ jest.mock('@dr.pogodin/react-native-fs', () => ({
   readDir: jest.fn(async () => []),
   readFile: jest.fn(async () => ''),
   exists: jest.fn(async () => true),
+  mkdir: jest.fn(async () => {}),
+  copyFile: jest.fn(async () => {}),
+  writeFile: jest.fn(async () => {}),
+  unlink: jest.fn(async () => {}),
+  MainBundlePath: '/bundle',
+  CachesDirectoryPath: '/caches',
 }));
+
+jest.mock('react-native-webview', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+  return {
+    __esModule: true,
+    default: props => React.createElement(View, props),
+  };
+});
 
 jest.mock('react-native-document-picker-macos', () => ({
   pickDirectory: jest.fn(async () => []),

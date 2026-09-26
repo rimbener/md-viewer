@@ -148,6 +148,7 @@
 				514201452437B4B30078DB4F /* Sources */,
 				514201462437B4B30078DB4F /* Frameworks */,
 				514201472437B4B30078DB4F /* Resources */,
+				A7E3B91C4D2F48A1B6C0E5D2 /* Copy mermaid.min.js */,
 				381D8A6E24576A4E00465D17 /* Bundle React Native code and images */,
 				96410C5966E028A4142D4E5E /* [CP] Embed Pods Frameworks */,
 				60CA5B422837F6BF0014CEE2 /* [CP] Copy Pods Resources */,
@@ -320,6 +321,22 @@
 			shellPath = /bin/sh;
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-MdViewer-macOS/Pods-MdViewer-macOS-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
+		};
+		A7E3B91C4D2F48A1B6C0E5D2 /* Copy mermaid.min.js */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/../node_modules/mermaid/dist/mermaid.min.js",
+			);
+			name = "Copy mermaid.min.js";
+			outputPaths = (
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/mermaid.min.js",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "MERMAID_SRC=\"${SRCROOT}/../node_modules/mermaid/dist/mermaid.min.js\"\nMERMAID_DST=\"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/mermaid.min.js\"\nif [ ! -f \"$MERMAID_SRC\" ]; then\n  echo \"error: mermaid.min.js missing. Run npm install.\" >&2\n  exit 1\nfi\ncp \"$MERMAID_SRC\" \"$MERMAID_DST\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 

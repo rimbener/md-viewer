@@ -12,6 +12,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import {
   Image,
   Linking,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -24,9 +25,11 @@ import { isGherkin, parseGherkin } from '../gherkin';
 import { highlight, languageOf, type TokenKind } from '../highlight';
 import { resolveUri } from '../markdown/resolveUri';
 import type { Block, CellAlignment, InlineNode } from '../markdown/types';
+import { isMermaid, mermaidPage } from '../mermaidPage';
 import { useTheme, type Theme } from '../theme';
 import { BODY_SIZE, schemeById, type FontScheme } from '../typography';
 import { Gherkin } from './Gherkin';
+import { Mermaid } from './Mermaid';
 
 /** Vertical rhythm between sibling blocks, before zoom. */
 const BLOCK_SPACING = 12;
@@ -158,6 +161,22 @@ function createStyles(scale: number, scheme: FontScheme) {
       image: {
         width: '100%',
       },
+      mermaidSwitchRow: {
+        flexDirection: 'row',
+        justifyContent: 'flex-end',
+        marginBottom: size(6),
+      },
+      mermaidSwitch: {
+        borderWidth: 1,
+        borderRadius: 6,
+        paddingHorizontal: size(8),
+        paddingVertical: size(2),
+      },
+      mermaidSwitchLabel: {
+        fontFamily: bodyFamily,
+        fontSize: size(9),
+        lineHeight: size(12),
+      },
     }),
   };
 }
@@ -278,25 +297,15 @@ function BlockView({ block, basePath, color, isFirst, spacing }: BlockProps) {
       if (isGherkin(block.language)) {
         return <GherkinBlock text={block.text} spacing={spacing} />;
       }
+      if (isMermaid(block.language)) {
+        return <MermaidBlock text={block.text} spacing={spacing} />;
+      }
       return (
-        <View
-          style={[
-            sheet.codeBlock,
-            {
-              backgroundColor: theme.code,
-              borderColor: theme.codeBorder,
-              marginBottom: spacing,
-            },
-          ]}
-        >
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={sheet.codeBlockContent}
-          >
-            <CodeText language={block.language} text={block.text} />
-          </ScrollView>
-        </View>
+        <CodeFence
+          language={block.language}
+          text={block.text}
+          spacing={spacing}
+        />
       );
 
     case 'quote':
@@ -401,6 +410,114 @@ const TOKEN_COLOR: Record<TokenKind, keyof Theme> = {
   attribute: 'syntaxAttribute',
   function: 'syntaxFunction',
 };
+
+/** A fence shown as source: uniform, or tinted when its language is known. */
+function CodeFence({
+  language,
+  text,
+  spacing,
+}: {
+  language: string | null;
+  text: string;
+  spacing: number;
+}) {
+  const theme = useTheme();
+  const { sheet } = useStyles();
+
+  return (
+    <View
+      style={[
+        sheet.codeBlock,
+        {
+          backgroundColor: theme.code,
+          borderColor: theme.codeBorder,
+          marginBottom: spacing,
+        },
+      ]}
+    >
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={sheet.codeBlockContent}
+      >
+        <CodeText language={language} text={text} />
+      </ScrollView>
+    </View>
+  );
+}
+
+/** A ```mermaid fence. A fence Mermaid cannot draw stays source. */
+function MermaidBlock({ text, spacing }: { text: string; spacing: number }) {
+  const theme = useTheme();
+  const { scale, scheme } = useStyles();
+  const page = useMemo(
+    () =>
+      mermaidPage(text, {
+        theme,
+        scale,
+        bodyScale: scheme.body.scale,
+        fontFamily: scheme.body.family,
+      }),
+    [text, theme, scale, scheme],
+  );
+  const [asText, setAsText] = useState(false);
+
+  if (page === null) {
+    return <CodeFence language="mermaid" text={text} spacing={spacing} />;
+  }
+
+  return (
+    <View style={{ marginBottom: spacing }}>
+      <MermaidSwitch
+        showsText={asText}
+        onPress={() => setAsText(value => !value)}
+      />
+      {asText ? (
+        <CodeFence language="mermaid" text={text} spacing={0} />
+      ) : (
+        <Mermaid
+          html={page}
+          spacing={0}
+          background={theme.background}
+          onFail={() => setAsText(true)}
+        />
+      )}
+    </View>
+  );
+}
+
+type MermaidSwitchProps = {
+  /** True while the fence text is on screen. */
+  showsText: boolean;
+  onPress: () => void;
+};
+
+function MermaidSwitch({ showsText, onPress }: MermaidSwitchProps) {
+  const theme = useTheme();
+  const { sheet } = useStyles();
+  const label = showsText ? 'View Diagram' : 'View Text';
+
+  return (
+    <View style={sheet.mermaidSwitchRow}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        onPress={onPress}
+        style={({ pressed }) => [
+          sheet.mermaidSwitch,
+          {
+            borderColor: theme.border,
+            backgroundColor: pressed ? theme.hairline : theme.background,
+          },
+        ]}
+      >
+        <Text style={[sheet.mermaidSwitchLabel, { color: theme.mutedText }]}>
+          {label}
+        </Text>
+      </Pressable>
+    </View>
+  );
+}
 
 /** The body of a fence, tinted when its language is one we can read. */
 function CodeText({

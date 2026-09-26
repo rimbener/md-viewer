@@ -14,8 +14,9 @@ support itself.
 ## Syntax highlighting covers three languages
 
 HTML, CSS and JavaScript/TypeScript are tinted; every other fence renders as
-uniform monospace. Each language costs a hand-written tokeniser, so the list
-grows one language at a time rather than by taking a dependency.
+uniform monospace, apart from a `mermaid` fence, which is drawn. Each language
+costs a hand-written tokeniser, so the list grows one language at a time rather
+than by taking a dependency.
 
 The highlighter is shallow on purpose. It marks lexical categories, not
 meaning: a name is tinted as a call because a `(` follows it, not because it is
@@ -44,6 +45,17 @@ an ordinary "and" or "given" are far more common than uncapitalised steps.
 Gherkin is also only reached through a fenced block inside a markdown document.
 A standalone `.feature` file is not shown at all, because the folder scan only
 collects `.md` and `.mdc` files.
+
+## Mermaid is drawn in a web view
+
+Each `mermaid` fence is its own web view. The diagram script is the Mermaid
+build copied into the app at build time. A fence longer than 50,000 characters,
+or a diagram Mermaid rejects, is shown as the monospace fence.
+
+A click or a link inside a diagram does nothing. A `%%{init}` block in the
+diagram cannot turn security off: `securityLevel`, `startOnLoad` and
+`maxTextSize` stay as the page set them. Find does not mark text inside the
+diagram. The source editor still holds the text.
 
 ## Images only render as blocks
 
