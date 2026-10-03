@@ -9,6 +9,7 @@ import { exists } from '@dr.pogodin/react-native-fs';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { ColorSchemeProvider } from './src/components/ColorSchemeProvider';
 import { DocumentPanel } from './src/components/DocumentPanel';
 import { Sidebar } from './src/components/Sidebar';
 import {
@@ -52,7 +53,7 @@ import {
 import { useTheme } from './src/theme';
 import type { DirectoryNode, FileNode } from './src/types';
 
-function App() {
+function Viewer() {
   const theme = useTheme();
 
   const [root, setRoot] = useState<DirectoryNode | null>(null);
@@ -413,5 +414,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
 });
+
+function App() {
+  return (
+    <ColorSchemeProvider>
+      <Viewer />
+    </ColorSchemeProvider>
+  );
+}
 
 export default App;

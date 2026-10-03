@@ -1,4 +1,7 @@
+import { createContext, useContext } from 'react';
 import { useColorScheme } from 'react-native';
+
+import { DEFAULT_COLOR_SCHEME_ID, type ColorSchemeId } from './colorScheme';
 
 export interface Theme {
   background: string;
@@ -48,10 +51,10 @@ export interface Theme {
 }
 
 const light: Theme = {
-  background: '#ffffff',
+  background: '#F0F4F8',
   sidebar: '#f4f4f5',
   border: '#e0e0e2',
-  text: '#1c1c1e',
+  text: '#1A2536',
   mutedText: '#6e6e73',
   selectedBackground: '#0a66d0',
   selectedText: '#ffffff',
@@ -109,6 +112,23 @@ const dark: Theme = {
   searchCurrent: '#8d6b1f',
 };
 
+export interface ColorSchemeChoice {
+  schemeId: ColorSchemeId;
+  setSchemeId: (schemeId: ColorSchemeId) => void;
+}
+
+export const ColorSchemeContext = createContext<ColorSchemeChoice>({
+  schemeId: DEFAULT_COLOR_SCHEME_ID,
+  setSchemeId: () => { },
+});
+
+export function useColorSchemeChoice(): ColorSchemeChoice {
+  return useContext(ColorSchemeContext);
+}
+
 export function useTheme(): Theme {
-  return useColorScheme() === 'dark' ? dark : light;
+  const system = useColorScheme();
+  const { schemeId } = useColorSchemeChoice();
+  const resolved = schemeId === 'system' ? system : schemeId;
+  return resolved === 'dark' ? dark : light;
 }

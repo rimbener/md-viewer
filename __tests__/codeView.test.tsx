@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text } from 'react-native';
+import { ScrollView, StyleSheet, Text } from 'react-native';
 import ReactTestRenderer from 'react-test-renderer';
 
 import { Markdown } from '../src/components/Markdown';
@@ -73,6 +73,13 @@ describe('a highlighted code block', () => {
     const tree = render('```\nx = 1\n```');
 
     expect(strings(tree)).toEqual(['x = 1']);
+  });
+
+  it('does not scroll on the vertical axis', () => {
+    const scroller = render(FENCE).root.findByType(ScrollView);
+
+    expect(scroller.props.horizontal).toBe(true);
+    expect(scroller.props.showsVerticalScrollIndicator).toBe(false);
   });
 });
 

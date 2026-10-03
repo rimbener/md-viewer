@@ -13,6 +13,7 @@ import {
   StyleSheet,
   Text,
   View,
+  type LayoutChangeEvent,
 } from 'react-native';
 
 import { DEFAULT_CHARACTERS } from '../column';
@@ -33,6 +34,7 @@ import { useTheme } from '../theme';
 import type { FileNode } from '../types';
 import { columnWidth, DEFAULT_SCHEME_ID, schemeById } from '../typography';
 import { DEFAULT_ZOOM } from '../zoom';
+import { ColorSchemeControl } from './ColorSchemeControl';
 import { ColumnControl } from './ColumnControl';
 import { DocumentSearch } from './DocumentSearch';
 import { Editor } from './Editor';
@@ -54,6 +56,25 @@ const MAX_RENDERED_CHARACTERS = 500_000;
  * that a run of keystrokes parses once, short enough to still read as live.
  */
 const REPARSE_DELAY_MS = 150;
+
+/** Body line in `Markdown.tsx` (`size(21)`), before zoom and scheme scale. */
+const BODY_LINE = 21;
+
+/** Plain-text fallback line, before zoom. */
+const PLAIN_LINE = 18;
+
+/**
+ * Padding under the last line. The end space subtracts it, so it is not
+ * counted twice.
+ */
+const CONTENT_PADDING_BOTTOM = 48;
+
+/** Full scroll leaves the last line this far below the top of the view. */
+const LAST_LINE_INSET = 300;
+
+function bodyLineHeight(scale: number, bodyScale: number): number {
+  return Math.round(BODY_LINE * scale * bodyScale * 2) / 2;
+}
 
 interface DocumentPanelProps {
   file: FileNode | null;
@@ -106,6 +127,7 @@ export function DocumentPanel({
   const [capped, setCapped] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const contentRef = useRef<View>(null);
+  const [bodyHeight, setBodyHeight] = useState(0);
   const [schemeId, setSchemeId] = useState(DEFAULT_SCHEME_ID);
   // Reading is the common case, so the editor stays closed until asked for.
   const [isEditorVisible, setIsEditorVisible] = useState(false);
@@ -145,6 +167,11 @@ export function DocumentPanel({
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  const measureBody = useCallback((event: LayoutChangeEvent) => {
+    const next = event.nativeEvent.layout.height;
+    setBodyHeight(current => (current === next ? current : next));
   }, []);
 
   const changeZoom = useCallback((next: number) => {
@@ -355,6 +382,7 @@ export function DocumentPanel({
     return (
       <View style={styles.container}>
         <View style={[styles.header, { borderBottomColor: theme.border }]}>
+          <TitleRow />
           <View style={styles.tools}>
             <Tool title="Sidebar">
               <SidebarToggle
@@ -379,10 +407,23 @@ export function DocumentPanel({
   // A document too large to parse is shown as plain text, and editing it would
   // reparse nothing — so the source pane has nothing to offer there.
   const canEdit = !isTruncated && error === null;
+  const lineHeight = isTruncated
+    ? PLAIN_LINE * scale
+    : bodyLineHeight(scale, schemeById(schemeId).body.scale);
+  const endSpace = Math.max(
+    0,
+    bodyHeight - lineHeight - CONTENT_PADDING_BOTTOM - LAST_LINE_INSET,
+  );
 
   const document = (
     // Keying on the path resets the scroll position for each document.
-    <ScrollView key={file.path} ref={scrollRef} style={styles.body}>
+    <ScrollView
+      key={file.path}
+      ref={scrollRef}
+      style={styles.body}
+      onLayout={measureBody}
+      contentContainerStyle={{ paddingBottom: endSpace }}
+    >
       {/* Left in the native tree so a match can measure its position against it. */}
       <View ref={contentRef} collapsable={false} style={styles.content}>
         {isTruncated ? (
@@ -409,7 +450,7 @@ export function DocumentPanel({
   return (
     <View style={styles.container}>
       <View style={[styles.header, { borderBottomColor: theme.border }]}>
-        <View style={styles.fileInfo}>
+        <TitleRow>
           <Text
             style={[styles.fileName, { color: theme.text }]}
             numberOfLines={1}
@@ -427,7 +468,7 @@ export function DocumentPanel({
               ? ` — edited, not saved — file changed on disk`
               : ` — edited, not saved`}
           </Text>
-        </View>
+        </TitleRow>
         <View style={styles.tools}>
           <Tool title="Sidebar">
             <SidebarToggle
@@ -502,6 +543,19 @@ export function DocumentPanel({
   );
 }
 
+type TitleRowProps = {
+  children?: ReactNode;
+};
+
+function TitleRow({ children }: TitleRowProps) {
+  return (
+    <View style={styles.titleRow}>
+      <View style={styles.fileInfo}>{children}</View>
+      <ColorSchemeControl />
+    </View>
+  );
+}
+
 type ToolProps = {
   title: string;
   children: ReactNode;
@@ -539,7 +593,7 @@ function PlainBody({ text, scale }: PlainBodyProps) {
         {
           color: theme.text,
           fontSize: 12.5 * scale,
-          lineHeight: 18 * scale,
+          lineHeight: PLAIN_LINE * scale,
         },
       ]}
     >
@@ -566,8 +620,15 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     borderBottomWidth: 1,
   },
-  fileInfo: {
+  titleRow: {
     flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  fileInfo: {
+    flex: 1,
+    flexDirection: 'row',
+    minWidth: 0,
     gap: 4,
   },
   tools: {
@@ -586,6 +647,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   fileName: {
+    flexShrink: 1,
     fontSize: 18,
     fontWeight: '600',
   },
@@ -610,7 +672,7 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 24,
     paddingVertical: 20,
-    paddingBottom: 48,
+    paddingBottom: CONTENT_PADDING_BOTTOM,
   },
   column: {
     width: '100%',

@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { emptyFileHistory, recordVisit } from '../src/fileHistory';
 import {
   loadCharacters,
+  loadColorScheme,
   loadFileHistory,
   loadFontScheme,
   loadLastFile,
@@ -11,6 +12,7 @@ import {
   loadZoom,
   moveFileHistory,
   saveCharacters,
+  saveColorScheme,
   saveFileHistory,
   saveFontScheme,
   saveLastFile,
@@ -177,6 +179,18 @@ describe('font scheme persistence', () => {
   it('rejects an id that no longer exists', async () => {
     await storage.setItem('mdviewer.fontScheme', 'retired-scheme');
     await expect(loadFontScheme()).resolves.toBeNull();
+  });
+});
+
+describe('color scheme persistence', () => {
+  it('round-trips a scheme id', async () => {
+    saveColorScheme('dark');
+    await expect(loadColorScheme()).resolves.toBe('dark');
+  });
+
+  it('rejects an id that is not a scheme', async () => {
+    await storage.setItem('mdviewer.colorScheme', 'sepia');
+    await expect(loadColorScheme()).resolves.toBeNull();
   });
 });
 

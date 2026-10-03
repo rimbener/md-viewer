@@ -4,6 +4,8 @@ This file provides guidance to Claude Code (claude.ai/code) or to other AI agent
 
 In all interactions and commit messages, be extremely concise and sacrifice grammar for the sake of concision. Always use ASD-STE100 (Simplified Technical English) for explanations, documentation, etc.
 
+NEVER TRY TO CONTROL THE COMPUTER TO TEST THE APP.
+
 ## What this is
 
 A macOS markdown viewer built with react-native-macos: a tree of `.md` files on

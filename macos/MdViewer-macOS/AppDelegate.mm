@@ -1,5 +1,8 @@
 #import "AppDelegate.h"
 
+#import "ScrollPass.h"
+#import "TextSelect.h"
+
 #import <React/RCTBundleURLProvider.h>
 #import <React/RCTEventEmitter.h>
 #import <ReactAppDependencyProvider/RCTAppDependencyProvider.h>
@@ -42,6 +45,8 @@ RCT_EXPORT_MODULE();
 
 - (void)applicationDidFinishLaunching:(NSNotification *)notification
 {
+  MdViewerInstallScrollPass();
+  MdViewerInstallTextSelect();
   self.moduleName = @"MdViewer";
   // You can add your custom initial props in the dictionary below.
   // They will be passed down to the ViewController used by React Native.

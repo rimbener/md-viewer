@@ -1,7 +1,7 @@
 /**
  * Viewer preferences that outlive a launch: the zoom level, the line length,
- * the sidebar and editor visibility, the folder and file that were open last,
- * and the files opened in each folder.
+ * the font scheme, the color scheme, the sidebar and editor visibility, the
+ * folder and file that were open last, and the files opened in each folder.
  *
  * Storage is best-effort: a read that fails falls back to the default and a
  * write that fails is dropped, because losing a preference is never worth
@@ -10,6 +10,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import { isColorSchemeId, type ColorSchemeId } from './colorScheme';
 import { isCharacterCount } from './column';
 import {
   decodeFileHistory,
@@ -25,6 +26,7 @@ const FOLDER_KEY = 'mdviewer.lastFolder';
 const BOOKMARK_KEY = 'mdviewer.lastFolderBookmark';
 const FILE_KEY = 'mdviewer.lastFile';
 const FONT_KEY = 'mdviewer.fontScheme';
+const COLOR_SCHEME_KEY = 'mdviewer.colorScheme';
 const SIDEBAR_KEY = 'mdviewer.sidebarVisible';
 const EDITOR_KEY = 'mdviewer.editorVisible';
 const HISTORY_INDEX_KEY = 'mdviewer.fileHistoryFolders';
@@ -96,6 +98,16 @@ export async function loadFontScheme(): Promise<string | null> {
 
 export function saveFontScheme(schemeId: string): void {
   write(FONT_KEY, schemeId);
+}
+
+/** The chosen color scheme, or null when there is no usable one. */
+export async function loadColorScheme(): Promise<ColorSchemeId | null> {
+  const stored = await read(COLOR_SCHEME_KEY);
+  return isColorSchemeId(stored) ? stored : null;
+}
+
+export function saveColorScheme(schemeId: ColorSchemeId): void {
+  write(COLOR_SCHEME_KEY, schemeId);
 }
 
 /**

@@ -96,6 +96,9 @@ function createStyles(scale: number, scheme: FontScheme) {
         borderRadius: 6,
         overflow: 'hidden',
       },
+      codeScroll: {
+        flexShrink: 0,
+      },
       codeBlockContent: {
         padding: size(12),
       },
@@ -438,6 +441,8 @@ function CodeFence({
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
+        showsVerticalScrollIndicator={false}
+        style={sheet.codeScroll}
         contentContainerStyle={sheet.codeBlockContent}
       >
         <CodeText language={language} text={text} />

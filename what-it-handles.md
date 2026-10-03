@@ -148,8 +148,11 @@ drops the files that were ahead. The list keeps the last 100 opens. The 20
 folders opened most recently each keep a list. When a bookmark follows a folder
 that moved, the open file and the paths in that list move with it.
 
-Zoom, the font scheme and the line length are properties of the reader: they
-survive switching files and come back on the next launch.
+Zoom, the font scheme, the line length and the color scheme are properties of
+the reader: they survive switching files and come back on the next launch. The
+color scheme control sits on the right of the file name row, level with the
+top of the name. The choices are System, Light and Dark. System follows the
+macOS appearance. Light and Dark stay fixed.
 
 That dialog is the app's own open panel, and it shows hidden files. The scan
 walks hidden directories — `.claude`, `.github` and `.cursor` are where a lot
@@ -164,6 +167,10 @@ open root again without asking for it. The tree is not watched.
 The open file is. A vnode source on that path rereads it when the file changes
 on disk, so a save in another editor shows up without switching away. A session
 edit is left alone: the header says the file changed, and the buffer stays.
+
+Blank space follows the last line. Its height is the view height, minus one
+line, the padding under the text, and 300 px. Full scroll leaves that line
+300 px below the top of the view.
 
 ## Find
 
