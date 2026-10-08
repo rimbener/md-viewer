@@ -14,6 +14,7 @@
 		514201582437B4B40078DB4F /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 514201572437B4B40078DB4F /* main.m */; };
 		8584BFAE174B44CD8EE6F115 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 99F4DB999703BB192BB9703D /* PrivacyInfo.xcprivacy */; };
 		A1B2C3D01E2F3A4B5C6D7E81 /* FolderAccess.mm in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D01E2F3A4B5C6D7E80 /* FolderAccess.mm */; };
+		B7C4E2A91F0D4B6E8A3C5D72 /* OpenedFile.mm in Sources */ = {isa = PBXBuildFile; fileRef = B7C4E2A91F0D4B6E8A3C5D71 /* OpenedFile.mm */; };
 		A1B2C3D01E2F3A4B5C6D7E83 /* ScrollPass.mm in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D01E2F3A4B5C6D7E82 /* ScrollPass.mm */; };
 		A1B2C3D01E2F3A4B5C6D7E85 /* TextSelect.mm in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D01E2F3A4B5C6D7E86 /* TextSelect.mm */; };
 		EE5C4E7EB5C9756C3A30ED62 /* libPods-MdViewer-macOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E1DE5CCE6DAF0E9BDDE0B0FE /* libPods-MdViewer-macOS.a */; };
@@ -32,6 +33,8 @@
 		514201592437B4B40078DB4F /* MdViewer.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MdViewer.entitlements; sourceTree = "<group>"; };
 		99F4DB999703BB192BB9703D /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		A1B2C3D01E2F3A4B5C6D7E80 /* FolderAccess.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = FolderAccess.mm; sourceTree = "<group>"; };
+		B7C4E2A91F0D4B6E8A3C5D70 /* OpenedFile.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = OpenedFile.h; sourceTree = "<group>"; };
+		B7C4E2A91F0D4B6E8A3C5D71 /* OpenedFile.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = OpenedFile.mm; sourceTree = "<group>"; };
 		A1B2C3D01E2F3A4B5C6D7E82 /* ScrollPass.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = ScrollPass.mm; sourceTree = "<group>"; };
 		A1B2C3D01E2F3A4B5C6D7E84 /* ScrollPass.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ScrollPass.h; sourceTree = "<group>"; };
 		A1B2C3D01E2F3A4B5C6D7E86 /* TextSelect.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = TextSelect.mm; sourceTree = "<group>"; };
@@ -85,6 +88,8 @@
 				5142014B2437B4B30078DB4F /* AppDelegate.h */,
 				5142014C2437B4B30078DB4F /* AppDelegate.mm */,
 				A1B2C3D01E2F3A4B5C6D7E80 /* FolderAccess.mm */,
+				B7C4E2A91F0D4B6E8A3C5D70 /* OpenedFile.h */,
+				B7C4E2A91F0D4B6E8A3C5D71 /* OpenedFile.mm */,
 				A1B2C3D01E2F3A4B5C6D7E84 /* ScrollPass.h */,
 				A1B2C3D01E2F3A4B5C6D7E82 /* ScrollPass.mm */,
 				A1B2C3D01E2F3A4B5C6D7E87 /* TextSelect.h */,
@@ -365,6 +370,7 @@
 				514201582437B4B40078DB4F /* main.m in Sources */,
 				5142014D2437B4B30078DB4F /* AppDelegate.mm in Sources */,
 				A1B2C3D01E2F3A4B5C6D7E81 /* FolderAccess.mm in Sources */,
+				B7C4E2A91F0D4B6E8A3C5D72 /* OpenedFile.mm in Sources */,
 				A1B2C3D01E2F3A4B5C6D7E83 /* ScrollPass.mm in Sources */,
 				A1B2C3D01E2F3A4B5C6D7E85 /* TextSelect.mm in Sources */,
 			);

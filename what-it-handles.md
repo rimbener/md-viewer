@@ -142,6 +142,13 @@ makes it, `src/folderAccess.ts` reads it), which also means the folder is found
 again after it is moved or renamed. A bookmark that no longer resolves falls
 back to the folder dialog.
 
+MdViewer is the default app for `.md`, `.markdown` and `.mdc`. Finder can open
+one of those files in the app. The sidebar then shows that file alone, under
+the name of its parent folder. The other files in the folder stay unread: the
+grant from Finder covers the opened file only. The app does not store that
+file as the last folder. The next launch reopens the last folder. macOS keeps
+a different app when a person has already chosen one.
+
 The files opened in a folder are kept as a list for that folder alone. Back and
 Next in the document header move through the list. Opening a file adds it and
 drops the files that were ahead. The list keeps the last 100 opens. The 20

@@ -1,5 +1,6 @@
 #import "AppDelegate.h"
 
+#import "OpenedFile.h"
 #import "ScrollPass.h"
 #import "TextSelect.h"
 
@@ -74,6 +75,16 @@ RCT_EXPORT_MODULE();
 - (IBAction)focusFind:(__unused id)sender
 {
   [[NSNotificationCenter defaultCenter] postNotificationName:kFocusFind object:nil];
+}
+
+- (void)application:(__unused NSApplication *)application
+           openURLs:(NSArray<NSURL *> *)urls
+{
+  for (NSURL *url in urls) {
+    if (MdViewerAcceptOpenedURL(url)) {
+      return;
+    }
+  }
 }
 
 /// This method controls whether the `concurrentRoot`feature of React18 is turned on or off.

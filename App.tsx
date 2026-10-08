@@ -30,6 +30,7 @@ import {
   closeFolder,
   openFolder,
 } from './src/folderAccess';
+import { takeOpenedFile, watchOpenedFile } from './src/openedFile';
 import {
   loadFileHistory,
   loadFolderBookmark,
@@ -77,6 +78,8 @@ function Viewer() {
   const revealTicket = useRef(0);
   const rootPathRef = useRef(rootPath);
   rootPathRef.current = rootPath;
+  /** Set while Finder's file is on screen, so a folder restore cannot replace it. */
+  const externalFile = useRef<string | null>(null);
 
   if (rootPath !== historyFolder) {
     setHistoryFolder(rootPath);
@@ -124,6 +127,7 @@ function Viewer() {
       // it can be made.
       closeFolder();
       saveFolderBookmark(await bookmarkFolder(directory));
+      externalFile.current = null;
       setRootPath(directory);
       saveLastFolder(directory);
       setScanNonce(previous => previous + 1);
@@ -177,11 +181,30 @@ function Viewer() {
   const selectFile = useCallback(
     (file: FileNode) => {
       setSelectedFile(file);
+      if (rootPath === null) {
+        return;
+      }
       saveLastFile(file.path);
       remember(recordVisit(historyRef.current, file.path));
     },
-    [remember],
+    [remember, rootPath],
   );
+
+  const showOpenedFile = useCallback((path: string) => {
+    if (externalFile.current === path) {
+      return;
+    }
+    externalFile.current = path;
+    pendingFilePath.current = null;
+    closeFolder();
+    const opened = treeForOpenedFile(path);
+    setError(null);
+    setIsScanning(false);
+    setIsRestoring(false);
+    setRootPath(null);
+    setRoot(opened.root);
+    setSelectedFile(opened.file);
+  }, []);
 
   const goBack = useCallback(() => {
     const next = stepBack(historyRef.current);
@@ -210,6 +233,9 @@ function Viewer() {
   }, []);
 
   const selectDirectory = useCallback((directory: DirectoryNode) => {
+    if (rootPathRef.current === null) {
+      return;
+    }
     scanDirectory(directory.path)
       .then(branch => {
         setRoot(current =>
@@ -267,7 +293,7 @@ function Viewer() {
 
     walk
       .then(tree => {
-        if (cancelled) {
+        if (cancelled || externalFile.current !== null) {
           return;
         }
         setRoot(tree);
@@ -283,7 +309,7 @@ function Viewer() {
         }
       })
       .catch((cause: unknown) => {
-        if (!cancelled) {
+        if (!cancelled && externalFile.current === null) {
           setRoot(null);
           setError(
             cause instanceof Error ? cause.message : 'Could not read folder.',
@@ -303,21 +329,38 @@ function Viewer() {
 
   const fileCount = useMemo(() => (root ? countFiles(root) : 0), [root]);
 
-  // Reopen the last session, and fall back to the folder dialog when there is
-  // nothing to reopen — the app is useless without a folder.
+  // A file from Finder wins over the stored folder. With neither, ask for one.
   useEffect(() => {
     let cancelled = false;
+    const stopWatch = watchOpenedFile(path => {
+      if (!cancelled) {
+        showOpenedFile(path);
+      }
+    });
 
     (async () => {
+      const opened = await takeOpenedFile();
+      if (cancelled || externalFile.current !== null) {
+        return;
+      }
+      if (opened !== null) {
+        showOpenedFile(opened);
+        return;
+      }
+
       const folder = await restoreFolder();
       const isUsable = folder !== null && (await folderExists(folder));
-      if (cancelled) {
+      if (cancelled || externalFile.current !== null) {
         return;
       }
 
       if (folder !== null && isUsable) {
         pendingFilePath.current = await loadLastFile();
         if (cancelled) {
+          return;
+        }
+        if (externalFile.current !== null) {
+          pendingFilePath.current = null;
           return;
         }
         setRootPath(folder);
@@ -331,8 +374,9 @@ function Viewer() {
 
     return () => {
       cancelled = true;
+      stopWatch();
     };
-  }, [chooseFolder]);
+  }, [chooseFolder, showOpenedFile]);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -397,6 +441,31 @@ async function restoreFolder(): Promise<string | null> {
     bookmarkFolder(opened.path).then(saveFolderBookmark);
   }
   return opened.path;
+}
+
+/** One file, under its parent folder name. The parent is not read. */
+function treeForOpenedFile(path: string): {
+  root: DirectoryNode;
+  file: FileNode;
+} {
+  const slash = path.lastIndexOf('/');
+  const name = slash < 0 ? path : path.slice(slash + 1);
+  const directoryPath = slash <= 0 ? '/' : path.slice(0, slash);
+  const directorySlash = directoryPath.lastIndexOf('/');
+  const directoryTail =
+    directorySlash < 0
+      ? directoryPath
+      : directoryPath.slice(directorySlash + 1);
+  const file: FileNode = { kind: 'file', name, path };
+  return {
+    file,
+    root: {
+      kind: 'directory',
+      name: directoryTail.length > 0 ? directoryTail : directoryPath,
+      path: directoryPath,
+      children: [file],
+    },
+  };
 }
 
 /** A folder that has been moved or deleted since last launch is not usable. */

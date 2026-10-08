@@ -102,6 +102,12 @@ bookmark no longer resolves — the folder was deleted, or the grant was revoked
 the degradation is graceful: the app falls back to the folder dialog exactly as
 it would on a first run.
 
+## A file from Finder stays one file
+
+The Open With grant covers the opened file, not its folder. The sidebar does
+not list the files beside it. Quit the app and the next launch reopens the last
+folder, not that file.
+
 ## Back and Next are navigation, not undo
 
 The buttons move through files you opened in the current folder. They do not
