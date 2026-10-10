@@ -8,9 +8,11 @@ import {
   loadFontScheme,
   loadLastFile,
   loadLastFolder,
+  loadRecentFolders,
   loadSidebarVisible,
   loadZoom,
   moveFileHistory,
+  rememberRecentFolder,
   saveCharacters,
   saveColorScheme,
   saveFileHistory,
@@ -167,6 +169,43 @@ describe('file history persistence', () => {
       paths: ['/folder/20/a.md'],
       index: 0,
     });
+  });
+});
+
+describe('recent folder persistence', () => {
+  it('round-trips the last folders and their bookmarks', async () => {
+    await rememberRecentFolder('/docs', 'DOCS');
+    await rememberRecentFolder('/notes', 'NOTES');
+
+    await expect(loadRecentFolders()).resolves.toEqual([
+      { path: '/notes', bookmark: 'NOTES' },
+      { path: '/docs', bookmark: 'DOCS' },
+    ]);
+  });
+
+  it('keeps the 10 folders opened most recently when saves overlap', async () => {
+    const saves: Promise<unknown>[] = [];
+    for (let index = 0; index < 12; index += 1) {
+      saves.push(rememberRecentFolder(`/folder/${index}`, null));
+    }
+    await Promise.all(saves);
+
+    await expect(loadRecentFolders()).resolves.toEqual(
+      Array.from({ length: 10 }, (_, index) => ({
+        path: `/folder/${11 - index}`,
+        bookmark: null,
+      })),
+    );
+  });
+
+  it('returns empty when the stored value is unusable', async () => {
+    await storage.setItem('mdviewer.recentFolders', 'nope');
+    await expect(loadRecentFolders()).resolves.toEqual([]);
+  });
+
+  it('survives a storage failure on read', async () => {
+    storage.getItem.mockRejectedValueOnce(new Error('disk is on fire'));
+    await expect(loadRecentFolders()).resolves.toEqual([]);
   });
 });
 

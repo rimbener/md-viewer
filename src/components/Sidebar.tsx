@@ -6,17 +6,22 @@ import {
   View,
 } from 'react-native';
 
+import type { RecentFolder } from '../recentFolders';
 import { useTheme } from '../theme';
 import type { DirectoryNode, FileNode } from '../types';
 import { FileTree } from './FileTree';
+import { RecentFolderMenu } from './RecentFolderMenu';
 
 interface SidebarProps {
   root: DirectoryNode | null;
+  currentFolderPath: string | null;
+  recentFolders: readonly RecentFolder[];
   selectedPath: string | null;
   isScanning: boolean;
   error: string | null;
   fileCount: number;
   onChooseFolder: () => void;
+  onSelectRecentFolder: (folder: RecentFolder) => void;
   onReloadFolder: () => void;
   onSelectFile: (file: FileNode) => void;
   onSelectDirectory: (directory: DirectoryNode) => void;
@@ -24,11 +29,14 @@ interface SidebarProps {
 
 export function Sidebar({
   root,
+  currentFolderPath,
+  recentFolders,
   selectedPath,
   isScanning,
   error,
   fileCount,
   onChooseFolder,
+  onSelectRecentFolder,
   onReloadFolder,
   onSelectFile,
   onSelectDirectory,
@@ -43,6 +51,12 @@ export function Sidebar({
       ]}
     >
       <View style={[styles.header, { borderBottomColor: theme.border }]}>
+        <RecentFolderMenu
+          folders={recentFolders}
+          currentPath={currentFolderPath}
+          disabled={isScanning}
+          onSelect={onSelectRecentFolder}
+        />
         <View style={styles.actions}>
           <Pressable
             onPress={onChooseFolder}
@@ -88,6 +102,14 @@ export function Sidebar({
             numberOfLines={1}
           >
             {root.path}
+          </Text>
+        ) : null}
+        {error && root ? (
+          <Text
+            style={[styles.errorText, { color: theme.mutedText }]}
+            numberOfLines={2}
+          >
+            {error}
           </Text>
         ) : null}
       </View>
@@ -162,6 +184,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   rootPath: {
+    marginTop: 8,
+    fontSize: 11,
+  },
+  errorText: {
     marginTop: 8,
     fontSize: 11,
   },

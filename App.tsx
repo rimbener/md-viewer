@@ -36,14 +36,17 @@ import {
   loadFolderBookmark,
   loadLastFile,
   loadLastFolder,
+  loadRecentFolders,
   loadSidebarVisible,
   moveFileHistory,
+  rememberRecentFolder,
   saveFileHistory,
   saveFolderBookmark,
   saveLastFile,
   saveLastFolder,
   saveSidebarVisible,
 } from './src/preferences';
+import type { RecentFolder } from './src/recentFolders';
 import {
   countFiles,
   findFile,
@@ -74,6 +77,12 @@ function Viewer() {
   const hasChosenSidebar = useRef(false);
   const [history, setHistory] = useState(emptyFileHistory());
   const [historyFolder, setHistoryFolder] = useState<string | null>(null);
+  const [recentFolders, setRecentFolders] = useState<readonly RecentFolder[]>(
+    [],
+  );
+  // A stored list must not replace a folder opened while that read was in flight.
+  const recentTicket = useRef(0);
+  const isMounted = useRef(true);
   const historyRef = useRef(history);
   const revealTicket = useRef(0);
   const rootPathRef = useRef(rootPath);
@@ -96,6 +105,38 @@ function Viewer() {
   }, [isSidebarVisible]);
 
   useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
+  const noteRecent = useCallback(
+    (
+      path: string,
+      bookmark: string | null,
+      replacedPath: string | null = null,
+    ) => {
+      const ticket = (recentTicket.current += 1);
+      rememberRecentFolder(path, bookmark, replacedPath).then(folders => {
+        if (isMounted.current && ticket === recentTicket.current) {
+          setRecentFolders(folders);
+        }
+      });
+    },
+    [],
+  );
+
+  useEffect(() => {
+    const ticket = (recentTicket.current += 1);
+    loadRecentFolders().then(folders => {
+      if (isMounted.current && ticket === recentTicket.current) {
+        setRecentFolders(folders);
+      }
+    });
+  }, []);
+
+  useEffect(() => {
     let cancelled = false;
     loadSidebarVisible().then(stored => {
       // Someone who toggled while the read was in flight outranks the store.
@@ -108,35 +149,67 @@ function Viewer() {
     };
   }, []);
 
+  const beginFolder = useCallback(async (directory: string) => {
+    const currentRoot = rootPathRef.current;
+    const resume = currentHistoryPath(
+      directory === currentRoot
+        ? historyRef.current
+        : await loadFileHistory(directory),
+    );
+    pendingFilePath.current = resume;
+    setSelectedFile(null);
+    saveLastFile(resume);
+    externalFile.current = null;
+    setError(null);
+    setRootPath(directory);
+    saveLastFolder(directory);
+    setScanNonce(previous => previous + 1);
+  }, []);
+
   const chooseFolder = useCallback(async () => {
     try {
       const directory = await askForFolder();
       if (directory === null) {
         return; // The user cancelled the dialog.
       }
-      const currentRoot = rootPathRef.current;
-      const resume = currentHistoryPath(
-        directory === currentRoot
-          ? historyRef.current
-          : await loadFileHistory(directory),
-      );
-      pendingFilePath.current = resume;
-      setSelectedFile(null);
-      saveLastFile(resume);
       // The panel's grant is live now, which is the only moment a bookmark for
       // it can be made.
       closeFolder();
-      saveFolderBookmark(await bookmarkFolder(directory));
-      externalFile.current = null;
-      setRootPath(directory);
-      saveLastFolder(directory);
-      setScanNonce(previous => previous + 1);
+      const bookmark = await bookmarkFolder(directory);
+      saveFolderBookmark(bookmark);
+      noteRecent(directory, bookmark);
+      await beginFolder(directory);
     } catch (cause) {
       setError(
         cause instanceof Error ? cause.message : 'Could not open that folder.',
       );
     }
-  }, []);
+  }, [beginFolder, noteRecent]);
+
+  const selectRecentFolder = useCallback(
+    async (folder: RecentFolder) => {
+      if (folder.path === rootPathRef.current) {
+        return;
+      }
+      try {
+        const opened = await openRecentFolder(folder);
+        if (opened === null) {
+          setError('Could not open that folder.');
+          return;
+        }
+        saveFolderBookmark(opened.bookmark);
+        noteRecent(opened.path, opened.bookmark, opened.replaced);
+        await beginFolder(opened.path);
+      } catch (cause) {
+        setError(
+          cause instanceof Error
+            ? cause.message
+            : 'Could not open that folder.',
+        );
+      }
+    },
+    [beginFolder, noteRecent],
+  );
 
   const remember = useCallback(
     (next: FileHistory) => {
@@ -348,13 +421,14 @@ function Viewer() {
         return;
       }
 
-      const folder = await restoreFolder();
+      const restored = await restoreFolder();
+      const folder = restored?.path ?? null;
       const isUsable = folder !== null && (await folderExists(folder));
       if (cancelled || externalFile.current !== null) {
         return;
       }
 
-      if (folder !== null && isUsable) {
+      if (restored !== null && isUsable) {
         pendingFilePath.current = await loadLastFile();
         if (cancelled) {
           return;
@@ -363,8 +437,9 @@ function Viewer() {
           pendingFilePath.current = null;
           return;
         }
-        setRootPath(folder);
+        setRootPath(restored.path);
         setIsRestoring(false);
+        noteRecent(restored.path, restored.bookmark, restored.replaced);
         return;
       }
 
@@ -376,18 +451,21 @@ function Viewer() {
       cancelled = true;
       stopWatch();
     };
-  }, [chooseFolder, showOpenedFile]);
+  }, [chooseFolder, noteRecent, showOpenedFile]);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       {isSidebarVisible ? (
         <Sidebar
           root={root}
+          currentFolderPath={rootPath}
+          recentFolders={recentFolders}
           selectedPath={selectedFile?.path ?? null}
           isScanning={isScanning || isRestoring}
           error={error}
           fileCount={fileCount}
           onChooseFolder={chooseFolder}
+          onSelectRecentFolder={selectRecentFolder}
           onReloadFolder={reloadFolder}
           onSelectFile={selectFile}
           onSelectDirectory={selectDirectory}
@@ -406,41 +484,81 @@ function Viewer() {
   );
 }
 
+type OpenedRecent = {
+  path: string;
+  bookmark: string | null;
+  /** The path a bookmark left when the folder had moved. */
+  replaced: string | null;
+};
+
 /**
  * The folder of the last session, with its access restored. The bookmark is
  * the authority on where the folder is, because it follows a folder that moved;
  * the stored path is the fallback for a build that never made one.
  */
-async function restoreFolder(): Promise<string | null> {
+async function restoreFolder(): Promise<OpenedRecent | null> {
   const stored = await loadLastFolder();
   const bookmark = await loadFolderBookmark();
   if (bookmark === null) {
-    return stored;
+    return stored === null
+      ? null
+      : { path: stored, bookmark: null, replaced: null };
   }
 
   const opened = await openFolder(bookmark);
   if (opened === null) {
-    return stored;
+    return stored === null ? null : { path: stored, bookmark, replaced: null };
   }
+  let replaced: string | null = null;
   if (stored !== null && opened.path !== stored) {
     saveLastFolder(opened.path);
-    const last = await loadLastFile();
-    if (last !== null && last.startsWith(`${stored}/`)) {
-      saveLastFile(`${opened.path}${last.slice(stored.length)}`);
-    }
-    const moved = retargetHistory(
-      await loadFileHistory(stored),
-      stored,
-      opened.path,
-    );
-    if (moved.paths.length > 0) {
-      moveFileHistory(stored, opened.path, moved);
-    }
+    await retargetFolderFiles(stored, opened.path);
+    replaced = stored;
   }
+  let grant: string | null = bookmark;
   if (opened.isStale) {
-    bookmarkFolder(opened.path).then(saveFolderBookmark);
+    grant = await bookmarkFolder(opened.path);
+    saveFolderBookmark(grant);
   }
-  return opened.path;
+  return { path: opened.path, bookmark: grant, replaced };
+}
+
+/** Opens a folder from the recent menu. Null when that folder is gone. */
+async function openRecentFolder(
+  folder: RecentFolder,
+): Promise<OpenedRecent | null> {
+  if (folder.bookmark !== null) {
+    const opened = await openFolder(folder.bookmark);
+    if (opened !== null) {
+      let bookmark: string | null = folder.bookmark;
+      let replaced: string | null = null;
+      if (opened.path !== folder.path) {
+        replaced = folder.path;
+        await retargetFolderFiles(folder.path, opened.path);
+      }
+      if (opened.isStale) {
+        bookmark = await bookmarkFolder(opened.path);
+      }
+      return { path: opened.path, bookmark, replaced };
+    }
+  }
+  if (!(await folderExists(folder.path))) {
+    return null;
+  }
+  closeFolder();
+  return { path: folder.path, bookmark: folder.bookmark, replaced: null };
+}
+
+/** Rewrites the open file and its history after a bookmark follows a move. */
+async function retargetFolderFiles(from: string, to: string): Promise<void> {
+  const last = await loadLastFile();
+  if (last !== null && last.startsWith(`${from}/`)) {
+    saveLastFile(`${to}${last.slice(from.length)}`);
+  }
+  const moved = retargetHistory(await loadFileHistory(from), from, to);
+  if (moved.paths.length > 0) {
+    await moveFileHistory(from, to, moved);
+  }
 }
 
 /** One file, under its parent folder name. The parent is not read. */

@@ -1,7 +1,8 @@
 /**
  * Viewer preferences that outlive a launch: the zoom level, the line length,
  * the font scheme, the color scheme, the sidebar and editor visibility, the
- * folder and file that were open last, and the files opened in each folder.
+ * folder and file that were open last, the last folders opened, and the
+ * files opened in each folder.
  *
  * Storage is best-effort: a read that fails falls back to the default and a
  * write that fails is dropped, because losing a preference is never worth
@@ -17,6 +18,12 @@ import {
   encodeFileHistory,
   type FileHistory,
 } from './fileHistory';
+import {
+  decodeRecentFolders,
+  encodeRecentFolders,
+  rememberFolder,
+  type RecentFolder,
+} from './recentFolders';
 import { isSchemeId } from './typography';
 import { isZoomLevel } from './zoom';
 
@@ -30,6 +37,7 @@ const COLOR_SCHEME_KEY = 'mdviewer.colorScheme';
 const SIDEBAR_KEY = 'mdviewer.sidebarVisible';
 const EDITOR_KEY = 'mdviewer.editorVisible';
 const HISTORY_INDEX_KEY = 'mdviewer.fileHistoryFolders';
+const RECENT_FOLDERS_KEY = 'mdviewer.recentFolders';
 
 /** Lists kept on disk. A folder opened earlier than these loses its list. */
 const MAX_HISTORY_FOLDERS = 20;
@@ -181,13 +189,47 @@ export function saveFileHistory(
 }
 
 /** Moves a list onto the path a bookmark followed, and drops the old path. */
-export function moveFileHistory(
+export async function moveFileHistory(
   from: string,
   to: string,
   history: FileHistory,
 ): Promise<void> {
-  write(historyKey(to), encodeFileHistory(history));
-  return noteFolders(to, from);
+  await put(historyKey(to), encodeFileHistory(history));
+  await noteFolders(to, from);
+}
+
+/** The last folders opened, newest first. */
+export async function loadRecentFolders(): Promise<RecentFolder[]> {
+  return decodeRecentFolders(await read(RECENT_FOLDERS_KEY));
+}
+
+/**
+ * Puts `path` first. `replacedPath` is dropped when a bookmark followed a
+ * folder that moved. Returns the list that was stored.
+ */
+export function rememberRecentFolder(
+  path: string,
+  bookmark: string | null,
+  replacedPath: string | null = null,
+): Promise<RecentFolder[]> {
+  let result: RecentFolder[] = [];
+  const run = recentQueue.then(async () => {
+    const folders = rememberFolder(
+      decodeRecentFolders(await read(RECENT_FOLDERS_KEY)),
+      { path, bookmark },
+      replacedPath,
+    );
+    await put(RECENT_FOLDERS_KEY, encodeRecentFolders(folders));
+    result = folders;
+  });
+  recentQueue = run.then(
+    () => undefined,
+    () => undefined,
+  );
+  return run.then(
+    () => result,
+    () => result,
+  );
 }
 
 function parseFolderList(value: string | null): string[] {
@@ -220,6 +262,7 @@ async function put(key: string, value: string | null): Promise<void> {
 
 // Later saves must see earlier index updates, or a dropped folder can return.
 let folderQueue: Promise<void> = Promise.resolve();
+let recentQueue: Promise<void> = Promise.resolve();
 
 function noteFolders(add: string, drop: string | null): Promise<void> {
   const run = folderQueue.then(async () => {

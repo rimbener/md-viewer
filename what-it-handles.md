@@ -142,6 +142,13 @@ makes it, `src/folderAccess.ts` reads it), which also means the folder is found
 again after it is moved or renamed. A bookmark that no longer resolves falls
 back to the folder dialog.
 
+The sidebar keeps a menu of the last 10 folders, above Change Folder. The
+newest folder is first. Each folder keeps the bookmark made when it was
+opened, so a choice in the menu opens that folder again. The menu shows the
+folder name. When two folders have the same name, it also shows the parent
+folder. A file opened from Finder is not added. A folder that can no longer
+be opened stays in the menu until a newer folder takes its place.
+
 MdViewer is the default app for `.md`, `.markdown` and `.mdc`. Finder can open
 one of those files in the app. The sidebar then shows that file alone, under
 the name of its parent folder. The other files in the folder stay unread: the
